@@ -97,7 +97,7 @@ void array_to_text(float* u_sol, int res)
 {
     const unsigned int s = res * res;
     fstream newfile;
-    newfile.open("u_sol_4_2_dt.txt", ios::out);
+    newfile.open("u_sol_uni.txt", ios::out);
     if (newfile.is_open())
     {
         newfile << scientific << setprecision(17);

@@ -100,7 +100,7 @@ bool test(float* u, int size)
     }
 
 
-    cout << "test passed" << "\n";
+    cout << "test passed?" << "\n";
     delete[] u_comp_test;
     return true;
 }

@@ -1,4 +1,14 @@
 ﻿// unified
+//-------------------------------------------------
+//---------- DEFINE WHICH KERNELS TO RUN ----------
+//-------------------------------------------------
+#define run_naive 0
+#define run_global_copy 0
+#define run_gsync 0
+#define run_gsync_int_friend 0
+#define run_gsync_int_friend_persistent_L2 0
+#define run_gsync_restruct 1
+
 #include "cuda_runtime.h"
 #include "device_launch_parameters.h"
 #include "copy_gridsync.h"
@@ -75,11 +85,11 @@ cudaError_t iterate_prep(float* u, float* v, float* u_sol, unsigned int size, in
     float* dev_ub = 0;
     float* dev_v = 0;
     float* dev_2_u = 0;
-    float* u_2 = 0;
+    // float* u_2 = 0;
 
     //measure at this iteration
     int iteration_limit_per_2 = ITERATIONS / 2;
-    int measure_at = iteration_limit_per_2 - 1;
+    // int measure_at = iteration_limit_per_2 - 1;
 
     // cooperative kernel launch parameters
     void* kernelArgs[] = { (void*)&dev_ua, (void*)&dev_ub, (void*)&dev_v, (void*)&res, (void*)&iteration_limit_per_2 };
@@ -89,7 +99,7 @@ cudaError_t iterate_prep(float* u, float* v, float* u_sol, unsigned int size, in
     //measure elapsed time
     std::chrono::steady_clock::time_point begin;
     std::chrono::steady_clock::time_point end;
-    int average_iteration_runtime;
+    // int average_iteration_runtime;
 
     // declare persisting L2 cache variables
     cudaDeviceProp prop;
@@ -99,7 +109,7 @@ cudaError_t iterate_prep(float* u, float* v, float* u_sol, unsigned int size, in
     cudaError_t cudaStatus;
 
     // for testing return
-    bool test_bool;
+    // bool test_bool;
 
     // Choose which GPU to run on, change this on a multi-GPU system.
     cudaStatus = cudaSetDevice(DEVICE_ID);
@@ -108,259 +118,270 @@ cudaError_t iterate_prep(float* u, float* v, float* u_sol, unsigned int size, in
     //-------------------------------------------------------------------------------------------------
     //---------------------------------------- GLOBAL COPY KERNEL -------------------------------------
     //-------------------------------------------------------------------------------------------------
+    if (run_global_copy)
+    {
+        cudaStatus = init(u, v, &dev_2_u, &dev_ua, &dev_ub, &dev_v, size, DEVICE_ID);
+        if (cudaStatus != cudaSuccess) { fprintf(stderr, "cudaMemcpy failed! -----init-----"); goto Error; }
 
-    cudaStatus = init(u, v, &dev_2_u, &dev_ua, &dev_ub, &dev_v, size, DEVICE_ID);
-    if (cudaStatus != cudaSuccess) { fprintf(stderr, "cudaMemcpy failed! -----init-----"); goto Error; }
-
-    cudaDeviceSynchronize();
-    g_to_g_test<< <dimGrid, dimBlock >> > (dev_ua, dev_ub);
-    cudaDeviceSynchronize();
-
+        cudaDeviceSynchronize();
+        g_to_g_test << <dimGrid, dimBlock >> > (dev_ua, dev_ub);
+        cudaDeviceSynchronize();
+    }
 
     //-------------------------------------------------------------------------------------------------
     //---------------------------------------- GRIDSYNC KERNEL ----------------------------------------
     //-------------------------------------------------------------------------------------------------
-    cout << "gridsync \n";
-    // Allocate GPU buffers
-    cudaStatus = init(u, v, &dev_2_u, &dev_ua, &dev_ub, &dev_v, size, DEVICE_ID);
-    if (cudaStatus != cudaSuccess) { fprintf(stderr, "cudaMemcpy failed! -----init-----"); goto Error; }
+    if (run_gsync)
+    {
+        cout << "gridsync \n";
+        // Allocate GPU buffers
+        cudaStatus = init(u, v, &dev_2_u, &dev_ua, &dev_ub, &dev_v, size, DEVICE_ID);
+        if (cudaStatus != cudaSuccess) { fprintf(stderr, "cudaMemcpy failed! -----init-----"); goto Error; }
 
-    cudaDeviceSynchronize();
-    // ---------- Launch a kernel on the GPU with one thread for each element. ----------
-    begin = std::chrono::steady_clock::now();
+        cudaDeviceSynchronize();
+        // ---------- Launch a kernel on the GPU with one thread for each element. ----------
+        begin = std::chrono::steady_clock::now();
 
-    cudaLaunchCooperativeKernel((void*)iterateKernel, dimGrid, dimBlock, kernelArgs);
-    cudaDeviceSynchronize();
+        cudaLaunchCooperativeKernel((void*)iterateKernel, dimGrid, dimBlock, kernelArgs);
+        cudaDeviceSynchronize();
 
-    end = std::chrono::steady_clock::now();
+        end = std::chrono::steady_clock::now();
 
-    print_runtimes(begin, end);
+        print_runtimes(begin, end);
 
-    // destroy stream
-    //cudaStreamDestroy(stream_1);
+        // destroy stream
+        //cudaStreamDestroy(stream_1);
 
-    // Check for any errors launching the kernel
-    cudaStatus = cudaGetLastError();
-    if (cudaStatus != cudaSuccess) {fprintf(stderr, "Gsync Kernel launch failed: %s\n", cudaGetErrorString(cudaStatus));goto Error;}
+        // Check for any errors launching the kernel
+        cudaStatus = cudaGetLastError();
+        if (cudaStatus != cudaSuccess) { fprintf(stderr, "Gsync Kernel launch failed: %s\n", cudaGetErrorString(cudaStatus)); goto Error; }
 
-    // cudaDeviceSynchronize waits for the kernel to finish, and returns
-    // any errors encountered during the launch.
-    cudaStatus = cudaDeviceSynchronize();
-    if (cudaStatus != cudaSuccess) {fprintf(stderr, "cudaDeviceSynchronize returned error code %d after launching addKernel!\n", cudaStatus);goto Error;}
+        // cudaDeviceSynchronize waits for the kernel to finish, and returns
+        // any errors encountered during the launch.
+        cudaStatus = cudaDeviceSynchronize();
+        if (cudaStatus != cudaSuccess) { fprintf(stderr, "cudaDeviceSynchronize returned error code %d after launching addKernel!\n", cudaStatus); goto Error; }
 
-    // Copy output vector from GPU buffer to host memory.
-    cudaStatus = cudaMemcpy(u, dev_ua, size * sizeof(int), cudaMemcpyDeviceToHost);
-    if (cudaStatus != cudaSuccess) {fprintf(stderr, "cudaMemcpy failed!");goto Error;}
+        // Copy output vector from GPU buffer to host memory.
+        cudaStatus = cudaMemcpy(u, dev_ua, size * sizeof(int), cudaMemcpyDeviceToHost);
+        if (cudaStatus != cudaSuccess) { fprintf(stderr, "cudaMemcpy failed!"); goto Error; }
 
-    cudaStatus = cudaDeviceSynchronize();
+        cudaStatus = cudaDeviceSynchronize();
 
-    array_to_text(u, res);
+        array_to_text(u, res);
 
-    test(u, size);
-    
+        test(u, size);
+    }
     //-------------------------------------------------------------------------------------------------
     //---------------------------------------- GRIDSYNC RESTRUCT KERNEL -------------------------------
     //-------------------------------------------------------------------------------------------------
-    cout << "gridsync restruct \n";
-    // Allocate GPU buffers
-    cudaStatus = init(u, v, &dev_2_u, &dev_ua, &dev_ub, &dev_v, size, DEVICE_ID);
-    if (cudaStatus != cudaSuccess) { fprintf(stderr, "cudaMemcpy failed! -----init-----"); goto Error; }
+    if (run_gsync_restruct)
+    {
+        cout << "gridsync restruct \n";
+        // Allocate GPU buffers
+        cudaStatus = init(u, v, &dev_2_u, &dev_ua, &dev_ub, &dev_v, size, DEVICE_ID);
+        if (cudaStatus != cudaSuccess) { fprintf(stderr, "cudaMemcpy failed! -----init-----"); goto Error; }
 
-    cudaDeviceSynchronize();
-    // ---------- Launch a kernel on the GPU with one thread for each element. ----------
-    begin = std::chrono::steady_clock::now();
+        cudaDeviceSynchronize();
+        // ---------- Launch a kernel on the GPU with one thread for each element. ----------
+        begin = std::chrono::steady_clock::now();
 
-    cudaLaunchCooperativeKernel((void*)iterate_kernel_gsync_restruct, dimGrid, dimBlock, kernelArgs);
-    cudaDeviceSynchronize();
+        cudaLaunchCooperativeKernel((void*)iterate_kernel_gsync_restruct, dimGrid, dimBlock, kernelArgs);
+        cudaDeviceSynchronize();
 
-    end = std::chrono::steady_clock::now();
+        end = std::chrono::steady_clock::now();
 
-    print_runtimes(begin, end);
+        print_runtimes(begin, end);
 
-    // destroy stream
-    //cudaStreamDestroy(stream_1);
+        // destroy stream
+        //cudaStreamDestroy(stream_1);
 
-    // Check for any errors launching the kernel
-    cudaStatus = cudaGetLastError();
-    if (cudaStatus != cudaSuccess) { fprintf(stderr, "Gsync Kernel launch failed: %s\n", cudaGetErrorString(cudaStatus)); goto Error; }
+        // Check for any errors launching the kernel
+        cudaStatus = cudaGetLastError();
+        if (cudaStatus != cudaSuccess) { fprintf(stderr, "Gsync Kernel launch failed: %s\n", cudaGetErrorString(cudaStatus)); goto Error; }
 
-    // cudaDeviceSynchronize waits for the kernel to finish, and returns
-    // any errors encountered during the launch.
-    cudaStatus = cudaDeviceSynchronize();
-    if (cudaStatus != cudaSuccess) { fprintf(stderr, "cudaDeviceSynchronize returned error code %d after launching addKernel!\n", cudaStatus); goto Error; }
+        // cudaDeviceSynchronize waits for the kernel to finish, and returns
+        // any errors encountered during the launch.
+        cudaStatus = cudaDeviceSynchronize();
+        if (cudaStatus != cudaSuccess) { fprintf(stderr, "cudaDeviceSynchronize returned error code %d after launching addKernel!\n", cudaStatus); goto Error; }
 
-    // Copy output vector from GPU buffer to host memory.
-    cudaStatus = cudaMemcpy(u, dev_ua, size * sizeof(int), cudaMemcpyDeviceToHost);
-    if (cudaStatus != cudaSuccess) { fprintf(stderr, "cudaMemcpy failed!"); goto Error; }
+        // Copy output vector from GPU buffer to host memory.
+        cudaStatus = cudaMemcpy(u, dev_ua, size * sizeof(int), cudaMemcpyDeviceToHost);
+        if (cudaStatus != cudaSuccess) { fprintf(stderr, "cudaMemcpy failed!"); goto Error; }
 
-    cudaStatus = cudaDeviceSynchronize();
+        cudaStatus = cudaDeviceSynchronize();
 
-    array_to_text(u, res);
+        array_to_text(u, res);
 
-    test(u, size);
-
+        test(u, size);
+    }
 
     //----------------------------------------------------------------------------------------------
     //---------------------------------------- NAIVE KERNEL ----------------------------------------
     //----------------------------------------------------------------------------------------------
-
-    
-
-    // Allocate GPU buffers
-    cudaStatus = init(u, v, &dev_2_u, &dev_ua, &dev_ub, &dev_v, size, DEVICE_ID);
-    if (cudaStatus != cudaSuccess) { fprintf(stderr, "cudaMemcpy failed! -----init-----"); goto Error; }
-
-    cudaDeviceSynchronize();
-    // ---------- Launch a kernel on the GPU with one thread for each element. ----------
-    begin = std::chrono::steady_clock::now();
-
-    // Launch a kernel on the GPU with one thread for each element.
-    /*
-    for (size_t i = 0; i < iteration_limit_per_2; i++)
+    if (run_naive)
     {
+
+        // Allocate GPU buffers
+        cudaStatus = init(u, v, &dev_2_u, &dev_ua, &dev_ub, &dev_v, size, DEVICE_ID);
+        if (cudaStatus != cudaSuccess) { fprintf(stderr, "cudaMemcpy failed! -----init-----"); goto Error; }
+
+        cudaDeviceSynchronize();
+        // ---------- Launch a kernel on the GPU with one thread for each element. ----------
+        begin = std::chrono::steady_clock::now();
+
+        // Launch a kernel on the GPU with one thread for each element.
+        /*
+        for (size_t i = 0; i < iteration_limit_per_2; i++)
+        {
+            iterateKernelExpNaive << <dimGrid, dimBlock >> > (dev_ua, dev_ub, dev_v, res);
+            cudaDeviceSynchronize();
+
+            no_flux_kernel << < dimGrid, dimBlock >> > (dev_ub, res);
+            cudaDeviceSynchronize();
+
+            iterateKernelExpNaive << < dimGrid, dimBlock >> > (dev_ub, dev_ua, dev_v, res);
+            cudaDeviceSynchronize();
+
+            no_flux_kernel << < dimGrid, dimBlock >> > (dev_ua, res);
+            cudaDeviceSynchronize();
+        }
+        */
+
         iterateKernelExpNaive << <dimGrid, dimBlock >> > (dev_ua, dev_ub, dev_v, res);
         cudaDeviceSynchronize();
 
         no_flux_kernel << < dimGrid, dimBlock >> > (dev_ub, res);
         cudaDeviceSynchronize();
 
-        iterateKernelExpNaive << < dimGrid, dimBlock >> > (dev_ub, dev_ua, dev_v, res);
-        cudaDeviceSynchronize();
+        end = std::chrono::steady_clock::now();
 
-        no_flux_kernel << < dimGrid, dimBlock >> > (dev_ua, res);
-        cudaDeviceSynchronize();
+        print_runtimes(begin, end);
+
+        // destroy stream
+        //cudaStreamDestroy(stream_1);
+
+        // Check for any errors launching the kernel
+        cudaStatus = cudaGetLastError();
+        if (cudaStatus != cudaSuccess) { fprintf(stderr, "Gsync Kernel launch failed: %s\n", cudaGetErrorString(cudaStatus)); goto Error; }
+
+        // cudaDeviceSynchronize waits for the kernel to finish, and returns
+        // any errors encountered during the launch.
+        cudaStatus = cudaDeviceSynchronize();
+        if (cudaStatus != cudaSuccess) { fprintf(stderr, "cudaDeviceSynchronize returned error code %d after launching addKernel!\n", cudaStatus); goto Error; }
+
+        // Copy output vector from GPU buffer to host memory.
+        cudaStatus = cudaMemcpy(u, dev_ua, size * sizeof(int), cudaMemcpyDeviceToHost);
+        if (cudaStatus != cudaSuccess) { fprintf(stderr, "cudaMemcpy failed!"); goto Error; }
+
+        cudaStatus = cudaDeviceSynchronize();
+
+        array_to_text(u, res);
+
+        test(u, size);
     }
-    */
-
-    iterateKernelExpNaive << <dimGrid, dimBlock >> > (dev_ua, dev_ub, dev_v, res);
-    cudaDeviceSynchronize();
-
-    no_flux_kernel << < dimGrid, dimBlock >> > (dev_ub, res);
-    cudaDeviceSynchronize();
-
-    end = std::chrono::steady_clock::now();
-
-    print_runtimes(begin, end);
-
-    // destroy stream
-    //cudaStreamDestroy(stream_1);
-
-    // Check for any errors launching the kernel
-    cudaStatus = cudaGetLastError();
-    if (cudaStatus != cudaSuccess) { fprintf(stderr, "Gsync Kernel launch failed: %s\n", cudaGetErrorString(cudaStatus)); goto Error; }
-
-    // cudaDeviceSynchronize waits for the kernel to finish, and returns
-    // any errors encountered during the launch.
-    cudaStatus = cudaDeviceSynchronize();
-    if (cudaStatus != cudaSuccess) { fprintf(stderr, "cudaDeviceSynchronize returned error code %d after launching addKernel!\n", cudaStatus); goto Error; }
-
-    // Copy output vector from GPU buffer to host memory.
-    cudaStatus = cudaMemcpy(u, dev_ua, size * sizeof(int), cudaMemcpyDeviceToHost);
-    if (cudaStatus != cudaSuccess) { fprintf(stderr, "cudaMemcpy failed!"); goto Error; }
-
-    cudaStatus = cudaDeviceSynchronize();
-
-    array_to_text(u, res);
-
-    test(u, size);
 
     //------------------------------------------------------------------------------------------------------------
     //---------------------------------------- GRIDSYNC INTFIENDLY KERNEL ----------------------------------------
     //------------------------------------------------------------------------------------------------------------
-    // Allocate GPU buffers
-    cudaStatus = init(u, v, &dev_2_u, &dev_ua, &dev_ub, &dev_v, size, DEVICE_ID);
-    if (cudaStatus != cudaSuccess) { fprintf(stderr, "cudaMemcpy failed! -----init-----"); goto Error; }
+    if (run_gsync_int_friend)
+    {
+        // Allocate GPU buffers
+        cudaStatus = init(u, v, &dev_2_u, &dev_ua, &dev_ub, &dev_v, size, DEVICE_ID);
+        if (cudaStatus != cudaSuccess) { fprintf(stderr, "cudaMemcpy failed! -----init-----"); goto Error; }
 
-    cudaDeviceSynchronize();
-    // ---------- Launch a kernel on the GPU with one thread for each element. ----------
-    begin = std::chrono::steady_clock::now();
+        cudaDeviceSynchronize();
+        // ---------- Launch a kernel on the GPU with one thread for each element. ----------
+        begin = std::chrono::steady_clock::now();
 
-    cudaLaunchCooperativeKernel((void*)iterate_kernel_gi, dimGrid, dimBlock, kernelArgs);
-    cudaDeviceSynchronize();
+        cudaLaunchCooperativeKernel((void*)iterate_kernel_gi, dimGrid, dimBlock, kernelArgs);
+        cudaDeviceSynchronize();
 
-    end = std::chrono::steady_clock::now();
+        end = std::chrono::steady_clock::now();
 
-    print_runtimes(begin, end);
+        print_runtimes(begin, end);
 
-    // destroy stream
-    //cudaStreamDestroy(stream_1);
+        // destroy stream
+        //cudaStreamDestroy(stream_1);
 
-    // Check for any errors launching the kernel
-    cudaStatus = cudaGetLastError();
-    if (cudaStatus != cudaSuccess) { fprintf(stderr, "Gsync Kernel launch failed: %s\n", cudaGetErrorString(cudaStatus)); goto Error; }
+        // Check for any errors launching the kernel
+        cudaStatus = cudaGetLastError();
+        if (cudaStatus != cudaSuccess) { fprintf(stderr, "Gsync Kernel launch failed: %s\n", cudaGetErrorString(cudaStatus)); goto Error; }
 
-    // cudaDeviceSynchronize waits for the kernel to finish, and returns
-    // any errors encountered during the launch.
-    cudaStatus = cudaDeviceSynchronize();
-    if (cudaStatus != cudaSuccess) { fprintf(stderr, "cudaDeviceSynchronize returned error code %d after launching addKernel!\n", cudaStatus); goto Error; }
+        // cudaDeviceSynchronize waits for the kernel to finish, and returns
+        // any errors encountered during the launch.
+        cudaStatus = cudaDeviceSynchronize();
+        if (cudaStatus != cudaSuccess) { fprintf(stderr, "cudaDeviceSynchronize returned error code %d after launching addKernel!\n", cudaStatus); goto Error; }
 
-    // Copy output vector from GPU buffer to host memory.
-    cudaStatus = cudaMemcpy(u, dev_ua, size * sizeof(int), cudaMemcpyDeviceToHost);
-    if (cudaStatus != cudaSuccess) { fprintf(stderr, "cudaMemcpy failed!"); goto Error; }
+        // Copy output vector from GPU buffer to host memory.
+        cudaStatus = cudaMemcpy(u, dev_ua, size * sizeof(int), cudaMemcpyDeviceToHost);
+        if (cudaStatus != cudaSuccess) { fprintf(stderr, "cudaMemcpy failed!"); goto Error; }
 
-    cudaStatus = cudaDeviceSynchronize();
+        cudaStatus = cudaDeviceSynchronize();
 
-    array_to_text(u, res);
+        array_to_text(u, res);
 
-    test(u, size);
-
+        test(u, size);
+    }
     //------------------------------------------------------------------------------------------------------------
-    //---------------------------------------- GRIDSYNC INTFIENDLY KERNEL ----------------------------------------
+    //---------------------------------------- GRIDSYNC INTFIENDLY PERSISTENT L2 KERNEL --------------------------
     //------------------------------------------------------------------------------------------------------------
-    // Allocate GPU buffers
-    cudaStatus = init(u, v, &dev_2_u, &dev_ua, &dev_ub, &dev_v, size, DEVICE_ID);
-    if (cudaStatus != cudaSuccess) { fprintf(stderr, "cudaMemcpy failed! -----init-----"); goto Error; }
+    if (run_gsync_int_friend_persistent_L2)
+    {
+        // Allocate GPU buffers
+        cudaStatus = init(u, v, &dev_2_u, &dev_ua, &dev_ub, &dev_v, size, DEVICE_ID);
+        if (cudaStatus != cudaSuccess) { fprintf(stderr, "cudaMemcpy failed! -----init-----"); goto Error; }
 
-    // ----- Set up persisting cache -----
-    // set persisting cache maximum limit
-    cudaGetDeviceProperties(&prop, DEVICE_ID);
-    L2_size = min(int(prop.l2CacheSize * 0.75), prop.persistingL2CacheMaxSize);
-    cudaDeviceSetLimit(cudaLimitPersistingL2CacheSize, L2_size);
-    // setting stream parameters
-    cudaStreamAttrValue stream_attribute;                                         // Stream level attributes data structure
-    cudaStreamCreate(&stream_1);
-    stream_attribute.accessPolicyWindow.base_ptr = reinterpret_cast<void*>(dev_2_u); // Global Memory data pointer
-    stream_attribute.accessPolicyWindow.num_bytes = 2 * res * res * sizeof(float);                    // Number of bytes for persistence access.
-    // (Must be less than cudaDeviceProp::accessPolicyMaxWindowSize)
-    stream_attribute.accessPolicyWindow.hitRatio = 1;                          // Hint for cache hit ratio
-    stream_attribute.accessPolicyWindow.hitProp = cudaAccessPropertyPersisting; // Type of access property on cache hit
-    stream_attribute.accessPolicyWindow.missProp = cudaAccessPropertyStreaming;  // Type of access property on cache miss.
+        // ----- Set up persisting cache -----
+        // set persisting cache maximum limit
+        cudaGetDeviceProperties(&prop, DEVICE_ID);
+        L2_size = min(int(prop.l2CacheSize * 0.75), prop.persistingL2CacheMaxSize);
+        cudaDeviceSetLimit(cudaLimitPersistingL2CacheSize, L2_size);
+        // setting stream parameters
+        cudaStreamAttrValue stream_attribute;                                         // Stream level attributes data structure
+        cudaStreamCreate(&stream_1);
+        stream_attribute.accessPolicyWindow.base_ptr = reinterpret_cast<void*>(dev_2_u); // Global Memory data pointer
+        stream_attribute.accessPolicyWindow.num_bytes = 2 * res * res * sizeof(float);                    // Number of bytes for persistence access.
+        // (Must be less than cudaDeviceProp::accessPolicyMaxWindowSize)
+        stream_attribute.accessPolicyWindow.hitRatio = 1;                          // Hint for cache hit ratio
+        stream_attribute.accessPolicyWindow.hitProp = cudaAccessPropertyPersisting; // Type of access property on cache hit
+        stream_attribute.accessPolicyWindow.missProp = cudaAccessPropertyStreaming;  // Type of access property on cache miss.
 
-    //Set the attributes to a CUDA stream of type cudaStream_t
-    cudaStreamSetAttribute(stream_1, cudaStreamAttributeAccessPolicyWindow, &stream_attribute);
+        //Set the attributes to a CUDA stream of type cudaStream_t
+        cudaStreamSetAttribute(stream_1, cudaStreamAttributeAccessPolicyWindow, &stream_attribute);
 
-    cudaDeviceSynchronize();
-    // ---------- Launch a kernel on the GPU with one thread for each element. ----------
-    begin = std::chrono::steady_clock::now();
+        cudaDeviceSynchronize();
+        // ---------- Launch a kernel on the GPU with one thread for each element. ----------
+        begin = std::chrono::steady_clock::now();
 
-    cudaLaunchCooperativeKernel((void*)iterate_kernel_gi, dimGrid, dimBlock, kernelArgs);
-    cudaDeviceSynchronize();
+        cudaLaunchCooperativeKernel((void*)iterate_kernel_gi, dimGrid, dimBlock, kernelArgs);
+        cudaDeviceSynchronize();
 
-    end = std::chrono::steady_clock::now();
+        end = std::chrono::steady_clock::now();
 
-    print_runtimes(begin, end);
+        print_runtimes(begin, end);
 
-    // destroy stream
-    cudaStreamDestroy(stream_1);
+        // destroy stream
+        cudaStreamDestroy(stream_1);
 
-    // Check for any errors launching the kernel
-    cudaStatus = cudaGetLastError();
-    if (cudaStatus != cudaSuccess) { fprintf(stderr, "Gsync Kernel launch failed: %s\n", cudaGetErrorString(cudaStatus)); goto Error; }
+        // Check for any errors launching the kernel
+        cudaStatus = cudaGetLastError();
+        if (cudaStatus != cudaSuccess) { fprintf(stderr, "Gsync Kernel launch failed: %s\n", cudaGetErrorString(cudaStatus)); goto Error; }
 
-    // cudaDeviceSynchronize waits for the kernel to finish, and returns
-    // any errors encountered during the launch.
-    cudaStatus = cudaDeviceSynchronize();
-    if (cudaStatus != cudaSuccess) { fprintf(stderr, "cudaDeviceSynchronize returned error code %d after launching addKernel!\n", cudaStatus); goto Error; }
+        // cudaDeviceSynchronize waits for the kernel to finish, and returns
+        // any errors encountered during the launch.
+        cudaStatus = cudaDeviceSynchronize();
+        if (cudaStatus != cudaSuccess) { fprintf(stderr, "cudaDeviceSynchronize returned error code %d after launching addKernel!\n", cudaStatus); goto Error; }
 
-    // Copy output vector from GPU buffer to host memory.
-    cudaStatus = cudaMemcpy(u, dev_ua, size * sizeof(int), cudaMemcpyDeviceToHost);
-    if (cudaStatus != cudaSuccess) { fprintf(stderr, "cudaMemcpy failed!"); goto Error; }
+        // Copy output vector from GPU buffer to host memory.
+        cudaStatus = cudaMemcpy(u, dev_ua, size * sizeof(int), cudaMemcpyDeviceToHost);
+        if (cudaStatus != cudaSuccess) { fprintf(stderr, "cudaMemcpy failed!"); goto Error; }
 
-    cudaStatus = cudaDeviceSynchronize();
+        cudaStatus = cudaDeviceSynchronize();
 
-    array_to_text(u, res);
+        array_to_text(u, res);
 
-    test(u, size);
+        test(u, size);
+    }
 
     cudaFree(dev_ua);
     cudaFree(dev_ub);

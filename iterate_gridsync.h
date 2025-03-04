@@ -45,6 +45,7 @@ static __device__ __forceinline__ void laplace(float* g_ua, float* r_un, int res
         float r_L = 0;
         // Nem nagy a stencil, kilehet bontani teljesen:
         float* g_ua_act = g_ua + ThreadOffset; // Létrehozunk egy új pointert ami az aktuális thread megfelelő elemére mutat, 1 INT ADD     // INTO REG
+        /*
         r_L += -20 * g_ua_act[0];
         r_L += 4 * g_ua_act[+1];
         r_L += 4 * g_ua_act[-1];
@@ -62,11 +63,29 @@ static __device__ __forceinline__ void laplace(float* g_ua, float* r_un, int res
         r_L += 4 * g_ua_act[0];
         r_L += 1 * g_ua_act[+1];
         r_L += 1 * g_ua_act[-1];
+        */
 
+        r_L = r_L-20 * g_ua_act[0];
+        r_L = 4 * g_ua_act[+1] + r_L;
+        r_L = 4 * g_ua_act[-1] + r_L;
+
+
+
+        g_ua_act = g_ua_act - res; // Eltoljuk a pointert 1 sorral feljebb, 1 INT ADD         // INTO REG
+        r_L = 4 * g_ua_act[0] + r_L;
+        r_L = 1 * g_ua_act[+1] + r_L;
+        r_L = 1 * g_ua_act[-1] + r_L;
+
+
+
+        g_ua_act = g_ua_act + 2 * res; // Eltoljuk a pointert 2 sorral lejjebb, 1 INT FMA       // INTO REG
+        r_L = 4 * g_ua_act[0] + r_L;
+        r_L = 1 * g_ua_act[+1] + r_L;
+        r_L = 1 * g_ua_act[-1] + r_L;
         
         //__threadfence_block();
 
-        r_L = ccc * r_L; // Ez nem tudom miért kell ide de ha kell, akkor kell :)
+        //r_L = ccc * r_L; // Ez nem tudom miért kell ide de ha kell, akkor kell :)
         // Ebben az esetben a d_coeff nem kell. A beégetett számok a constant memóriába kerülnek automatikusan.
 
         //Műveletek összesen: //ezt módosítottam, változhatott az arány, idk
@@ -74,7 +93,7 @@ static __device__ __forceinline__ void laplace(float* g_ua, float* r_un, int res
         // 2 int FMA, 2 int ADD
         // Arány: 10/4
 
-        *r_un += r_L;
+        *r_un = ccc * r_L + (*r_un);
     }
 }
 

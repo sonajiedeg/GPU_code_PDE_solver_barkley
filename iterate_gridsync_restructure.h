@@ -26,9 +26,10 @@ __global__ void iterate_kernel_gsync_restruct(float* g_ua, float* g_ub, float* g
         // ----- Iteration step 1 -----
         iterate_without_laplace(r_ua, r_va, &r_ub, &r_vb);
 
-#pragma unroll
+// #pragma unroll
         for (int k = 0; k < iteration_limit_per_2; k++)
         {
+            whole_grid.sync();
             // ----- Laplace -----
             laplace(g_ua, &r_ub, res, i, j, ThreadOffset);
 
@@ -47,7 +48,7 @@ __global__ void iterate_kernel_gsync_restruct(float* g_ua, float* g_ub, float* g
 
             // ----- "Unload" Data And No Flux Bc -----
             copy_r_to_g_and_no_flux(g_ua, r_ua, res, i, j, ThreadOffset);
-            whole_grid.sync();
+            //whole_grid.sync();
         }
     }
 }

@@ -1,4 +1,4 @@
-CMPL_OPT = -O3 -std=c++11 --ptxas-options=-v --gpu-architecture=sm_86 -lineinfo --fmad=false --prec-div=true --prec-sqrt=true
+CMPL_OPT = -O3 -std=c++11 --ptxas-options=-v --gpu-architecture=sm_86 -lineinfo --fmad=true --prec-div=true --prec-sqrt=true 
 SOURCE   = kernel.cu
 all: kernel.exe
 kernel.exe: $(SOURCE)

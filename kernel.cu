@@ -4,7 +4,7 @@
 //-------------------------------------------------
 #define run_naive 0
 #define run_global_copy 0
-#define run_gsync 0
+#define run_gsync 1
 #define run_gsync_int_friend 0
 #define run_gsync_int_friend_persistent_L2 0
 #define run_gsync_restruct 1

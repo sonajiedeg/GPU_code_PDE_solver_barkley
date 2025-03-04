@@ -15,32 +15,35 @@ __global__ void iterate_kernel_gsync_restruct(float* g_ua, float* g_ub, float* g
         int ThreadOffset = i + j * res; // 1 INT FMA (FMA = Fused Multiple Add, az a+b*c műveletet 1 órajel alatt megcsinálja)       // INTO REG
         // ----- Variables -----
         float r_ua;
-        float r_v;
-        float r_un;
-        float r_vn;
+        float r_va;
+        float r_ub;
+        float r_vb;
 
         // ----- Load Data -----
-        copy_g_to_r(g_ua, g_v, &r_ua, &r_v, ThreadOffset);
+        copy_g_to_r(g_ua, g_v, &r_ua, &r_va, ThreadOffset);
         //whole_grid.sync();
 
-//#pragma unroll
+        // ----- Iteration step 1 -----
+        iterate_without_laplace(r_ua, r_va, &r_ub, &r_vb);
+
+#pragma unroll
         for (int k = 0; k < iteration_limit_per_2; k++)
         {
-            // ----- Iteration step 1 -----
-            iterate_without_laplace(r_ua, r_v, &r_un, &r_vn);
-            
             // ----- Laplace -----
-            laplace(g_ua, &r_un, res, i, j, ThreadOffset);
-
-            // ----- "Unload" Data And No Flux Bc -----
-            copy_r_to_g_and_no_flux(g_ub, r_un, res, i, j, ThreadOffset);
-            whole_grid.sync();
+            laplace(g_ua, &r_ub, res, i, j, ThreadOffset);
 
             // ----- Iteration step 2 
-            iterate_without_laplace(r_un, r_vn, &r_ua, &r_v);
+            iterate_without_laplace(r_ub, r_vb, &r_ua, &r_va);
+
+            // ----- "Unload" Data And No Flux Bc -----
+            copy_r_to_g_and_no_flux(g_ub, r_ub, res, i, j, ThreadOffset);
+            whole_grid.sync();
             
             // ----- Laplace -----
             laplace(g_ub, &r_ua, res, i, j, ThreadOffset);
+
+            // ----- Iteration step 3 -----
+            iterate_without_laplace(r_ua, r_va, &r_ub, &r_vb);
 
             // ----- "Unload" Data And No Flux Bc -----
             copy_r_to_g_and_no_flux(g_ua, r_ua, res, i, j, ThreadOffset);

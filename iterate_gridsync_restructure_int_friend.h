@@ -79,7 +79,7 @@ __global__ void iterate_kernel_gsync_restruct_int_friend(float* g_ua, float* g_u
     }
 }
 
-// no flux boundary condition INT FRIEND V1, testing register usage
+// no flux boundary condition INT FRIEND V2, testing register usage
 static __device__ __forceinline__ void copy_r_to_g_and_no_flux_int_friend(float* g_ub, float r_un, int res, int i, int j, int ThreadOffset, bool j_eq_1, bool j_eq_res_m_2, bool i_eq_1, bool i_eq_res_m_2, int threadoffset_p_one, int threadoffset_m_one , int threadoffset_p_res , int threadoffset_m_res, int within_simspace_inner)
 {
     // ----- Copy To GlobalMem -----

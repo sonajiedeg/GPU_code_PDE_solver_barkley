@@ -10,6 +10,7 @@
 #define run_gsync_restruct 1
 #define run_gsync_restruct_int_friend 1
 #define run_gsync_restruct_int_friend_v2 1
+#define run_gsync_restruct_int_friend_v2_threadfence 1
 
 #include "cuda_runtime.h"
 #include "device_launch_parameters.h"
@@ -18,6 +19,7 @@
 #include "iterate_gridsync_restructure.h"
 #include "iterate_gridsync_restructure_int_friend.h"
 #include "iterate_gridsync_restructure_int_friend_v2.h"
+#include "iterate_gridsync_restructure_int_friend_v2_threadfence.h"
 #include "iterate_gridsync_intfriend.h"
 #include "iterate_naive.h"
 #include "g_to_g_test.h"
@@ -278,6 +280,50 @@ cudaError_t iterate_prep(float* u, float* v, float* u_sol, unsigned int size, in
         begin = std::chrono::steady_clock::now();
 
         cudaLaunchCooperativeKernel((void*)iterate_kernel_gsync_restruct_int_friend_v2, dimGrid, dimBlock, kernelArgs);
+        cudaDeviceSynchronize();
+
+        end = std::chrono::steady_clock::now();
+
+        print_runtimes(begin, end);
+
+        // destroy stream
+        //cudaStreamDestroy(stream_1);
+
+        // Check for any errors launching the kernel
+        cudaStatus = cudaGetLastError();
+        if (cudaStatus != cudaSuccess) { fprintf(stderr, "Gsync Kernel launch failed: %s\n", cudaGetErrorString(cudaStatus)); goto Error; }
+
+        // cudaDeviceSynchronize waits for the kernel to finish, and returns
+        // any errors encountered during the launch.
+        cudaStatus = cudaDeviceSynchronize();
+        if (cudaStatus != cudaSuccess) { fprintf(stderr, "cudaDeviceSynchronize returned error code %d after launching addKernel!\n", cudaStatus); goto Error; }
+
+        // Copy output vector from GPU buffer to host memory.
+        cudaStatus = cudaMemcpy(u, dev_ua, size * sizeof(int), cudaMemcpyDeviceToHost);
+        if (cudaStatus != cudaSuccess) { fprintf(stderr, "cudaMemcpy failed!"); goto Error; }
+
+        cudaStatus = cudaDeviceSynchronize();
+
+        array_to_text(u, res);
+
+        test(u, size);
+    }
+
+    //--------------------------------------------------------------------------------------------------------------------------
+    //---------------------------------------- GRIDSYNC RESTRUCT INT FRIEND KERNEL V2 THREADFENCE-------------------------------
+    //--------------------------------------------------------------------------------------------------------------------------
+    if (run_gsync_restruct_int_friend_v2_threadfence)
+    {
+        cout << "gridsync restruct \n";
+        // Allocate GPU buffers
+        cudaStatus = init(u, v, &dev_2_u, &dev_ua, &dev_ub, &dev_v, size, DEVICE_ID);
+        if (cudaStatus != cudaSuccess) { fprintf(stderr, "cudaMemcpy failed! -----init-----"); goto Error; }
+
+        cudaDeviceSynchronize();
+        // ---------- Launch a kernel on the GPU with one thread for each element. ----------
+        begin = std::chrono::steady_clock::now();
+
+        cudaLaunchCooperativeKernel((void*)iterate_kernel_gsync_restruct_int_friend_v2_threadfence, dimGrid, dimBlock, kernelArgs);
         cudaDeviceSynchronize();
 
         end = std::chrono::steady_clock::now();

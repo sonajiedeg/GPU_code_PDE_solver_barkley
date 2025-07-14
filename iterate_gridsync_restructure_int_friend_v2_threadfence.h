@@ -60,33 +60,36 @@ __global__ void iterate_kernel_gsync_restruct_int_friend_v2_threadfence(float* g
         // ----- Iteration step 1 -----
         iterate_without_laplace(r_ua, r_va, &r_ub, &r_vb);
 
+       
+
 // #pragma unroll
         for (int k = 0; k < iteration_limit_per_2; k++)
         {
-            // whole_grid.sync();
-            // __threadfence();
-            __syncthreads();
-            // 
+            
+            
             // ----- Laplace 1 -----
+            // __syncthreads();
+            whole_grid.sync();
             laplace_gi(g_ua, &r_ub, res, i, j, ThreadOffset, within_simspace_inner, lap_pa, lap_na, lap_sa);
-
+            
             // ----- Iteration step 2 
             iterate_without_laplace(r_ub, r_vb, &r_ua, &r_va);
-
+            
             // ----- "Unload" Data And No Flux Bc 1 -----
             copy_r_to_g_and_no_flux_int_friend_v2(g_ub, r_ub, res, i, j, ThreadOffset, j_eq_1, j_eq_res_m_2, i_eq_1, i_eq_res_m_2, threadoffset_p_one, threadoffset_m_one, threadoffset_p_res, threadoffset_m_res, within_simspace_inner, i_eq_1_and_j_eq_1, i_eq_res_m_2_and_j_eq_1, i_eq_1_and_j_eq_res_m_2, i_eq_res_m_2_and_j_eq_res_m_2, threadoffset_m_res_m_1, threadoffset_m_res_p_1, threadoffset_p_res_m_1, threadoffset_p_resp_1);
-            // copy_r_to_g_and_no_flux_int_friend_v2(g_ub, r_ub, res, i, j, ThreadOffset, j_eq_1, j_eq_res_m_2, i_eq_1, i_eq_res_m_2, threadoffset_p_one, threadoffset_m_one, threadoffset_p_res, threadoffset_m_res, within_simspace_inner);
-            // copy_r_to_g_and_no_flux_int_friend(g_ub, r_ub, res, i, j, ThreadOffset);
-            whole_grid.sync();
-            // __threadfence();
-            // __syncthreads();
+
+            // whole_grid.sync();
+            
+            //__syncthreads();
 
             // ----- Laplace 2 -----
+            whole_grid.sync();
+            // __syncthreads();
             laplace_gi(g_ub, &r_ua, res, i, j, ThreadOffset, within_simspace_inner, lap_pb, lap_nb, lap_sb);
-
+            
             // ----- Iteration step 3 -----
             iterate_without_laplace(r_ua, r_va, &r_ub, &r_vb);
-
+            
             // ----- "Unload" Data And No Flux Bc 2 -----
             copy_r_to_g_and_no_flux_int_friend_v2(g_ua, r_ua, res, i, j, ThreadOffset, j_eq_1, j_eq_res_m_2, i_eq_1, i_eq_res_m_2, threadoffset_p_one, threadoffset_m_one, threadoffset_p_res, threadoffset_m_res, within_simspace_inner, i_eq_1_and_j_eq_1, i_eq_res_m_2_and_j_eq_1, i_eq_1_and_j_eq_res_m_2, i_eq_res_m_2_and_j_eq_res_m_2, threadoffset_m_res_m_1, threadoffset_m_res_p_1, threadoffset_p_res_m_1, threadoffset_p_resp_1);
             // copy_r_to_g_and_no_flux_int_friend_v2(g_ua, r_ua, res, i, j, ThreadOffset, j_eq_1, j_eq_res_m_2, i_eq_1, i_eq_res_m_2, threadoffset_p_one, threadoffset_m_one, threadoffset_p_res, threadoffset_m_res, within_simspace_inner);

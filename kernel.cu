@@ -4,13 +4,14 @@
 //-------------------------------------------------
 #define run_naive 0
 #define run_global_copy 0
-#define run_gsync 1
+#define run_gsync 0
 #define run_gsync_int_friend 0
 #define run_gsync_int_friend_persistent_L2 0
-#define run_gsync_restruct 1
-#define run_gsync_restruct_int_friend 1
-#define run_gsync_restruct_int_friend_v2 1
-#define run_gsync_restruct_int_friend_v2_threadfence 1
+#define run_gsync_restruct 0
+#define run_gsync_restruct_int_friend 0
+#define run_gsync_restruct_int_friend_v2 0
+#define run_gsync_restruct_int_friend_v2_threadfence 0
+#define run_gsync_restruct_int_friend_v2_threadfence_for 1
 
 #include "cuda_runtime.h"
 #include "device_launch_parameters.h"
@@ -20,6 +21,7 @@
 #include "iterate_gridsync_restructure_int_friend.h"
 #include "iterate_gridsync_restructure_int_friend_v2.h"
 #include "iterate_gridsync_restructure_int_friend_v2_threadfence.h"
+#include "iterate_gridsync_restructure_int_friend_v2_threadfence_for.h"
 #include "iterate_gridsync_intfriend.h"
 #include "iterate_naive.h"
 #include "g_to_g_test.h"
@@ -99,6 +101,8 @@ cudaError_t iterate_prep(float* u, float* v, float* u_sol, unsigned int size, in
 
     // cooperative kernel launch parameters
     void* kernelArgs[] = { (void*)&dev_ua, (void*)&dev_ub, (void*)&dev_v, (void*)&res, (void*)&iteration_limit_per_2 };
+    int* ivar;
+    void* kernel_args_for[] = { (void*)&dev_ua, (void*)&dev_ub, (void*)&dev_v, (void*)&res, (void*)&iteration_limit_per_2, (void*)&ivar };
     dim3 dimBlock(32, 32, 1);
     dim3 dimGrid(8, 8, 1);
 
@@ -353,6 +357,61 @@ cudaError_t iterate_prep(float* u, float* v, float* u_sol, unsigned int size, in
         test(u, size);
     }
 
+    //------------------------------------------------------------------------------------------------------------------------------
+    //---------------------------------------- GRIDSYNC RESTRUCT INT FRIEND KERNEL V2 THREADFENCE FOR-------------------------------
+    //------------------------------------------------------------------------------------------------------------------------------
+    if (run_gsync_restruct_int_friend_v2_threadfence_for)
+    {
+        int count = 0;
+        for (size_t i = 0; i < 10000; i++)
+        {
+            // cout << "gridsync restruct \n";
+            // Allocate GPU buffers
+            cudaStatus = init(u, v, &dev_2_u, &dev_ua, &dev_ub, &dev_v, size, DEVICE_ID);
+            if (cudaStatus != cudaSuccess) { fprintf(stderr, "cudaMemcpy failed! -----init-----"); goto Error; }
+
+            cudaDeviceSynchronize();
+            // ---------- Launch a kernel on the GPU with one thread for each element. ----------
+            begin = std::chrono::steady_clock::now();
+
+            cudaLaunchCooperativeKernel((void*)iterate_kernel_gsync_restruct_int_friend_v2_threadfence, dimGrid, dimBlock, kernelArgs);
+            cudaDeviceSynchronize();
+
+            end = std::chrono::steady_clock::now();
+
+            print_runtimes(begin, end);
+
+            // destroy stream
+            //cudaStreamDestroy(stream_1);
+
+            // Check for any errors launching the kernel
+            cudaStatus = cudaGetLastError();
+            if (cudaStatus != cudaSuccess) { fprintf(stderr, "Gsync Kernel launch failed: %s\n", cudaGetErrorString(cudaStatus)); goto Error; }
+
+            // cudaDeviceSynchronize waits for the kernel to finish, and returns
+            // any errors encountered during the launch.
+            cudaStatus = cudaDeviceSynchronize();
+            if (cudaStatus != cudaSuccess) { fprintf(stderr, "cudaDeviceSynchronize returned error code %d after launching addKernel!\n", cudaStatus); goto Error; }
+
+            // Copy output vector from GPU buffer to host memory.
+            cudaStatus = cudaMemcpy(u, dev_ua, size * sizeof(int), cudaMemcpyDeviceToHost);
+            if (cudaStatus != cudaSuccess) { fprintf(stderr, "cudaMemcpy failed!"); goto Error; }
+
+            cudaStatus = cudaDeviceSynchronize();
+
+            array_to_text(u, res);
+
+            bool tmp = test(u, size);
+            if (!tmp)
+            {
+                printf("test failed at %d", i);
+                count++;
+            }
+            
+        }
+        printf("failed %d times", count);
+    }
+
     //----------------------------------------------------------------------------------------------
     //---------------------------------------- NAIVE KERNEL ----------------------------------------
     //----------------------------------------------------------------------------------------------
@@ -543,8 +602,8 @@ void print_runtimes(std::chrono::steady_clock::time_point begin, std::chrono::st
     int average_iteration_runtime;
     // std::cout << "Time difference (whole simulation) = " << std::chrono::duration_cast<std::chrono::seconds>(end - begin).count() << "[s]" << std::endl;
     // std::cout << "Time difference (whole simulation) = " << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count() << "[ms]" << std::endl;
-    std::cout << "Time difference (whole simulation) = " << std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count() << "[us]" << std::endl;
-    std::cout << "Time difference (whole simulation) = " << std::chrono::duration_cast<std::chrono::nanoseconds> (end - begin).count() << "[ns]" << std::endl;
+    // std::cout << "Time difference (whole simulation) = " << std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count() << "[us]" << std::endl;
+    // std::cout << "Time difference (whole simulation) = " << std::chrono::duration_cast<std::chrono::nanoseconds> (end - begin).count() << "[ns]" << std::endl;
     average_iteration_runtime = std::chrono::duration_cast<std::chrono::microseconds> (end - begin).count() / 2 / iteration_limit_per_2;
     cout << "average iteration runtime (count one of 2 iteration per kernel) : " << average_iteration_runtime << "[us]" << endl;
     average_iteration_runtime = std::chrono::duration_cast<std::chrono::nanoseconds> (end - begin).count() / 2 / iteration_limit_per_2;

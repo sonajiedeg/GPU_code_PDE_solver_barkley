@@ -1,53 +1,41 @@
 #include <string>
 
-
-cudaError_t init_n(float* u, float* v, float** dev_2_u, float** dev_ua, float** dev_ub, float** dev_v, unsigned int size, int device_id)
+// allocate for n kernels
+cudaError_t init_n(float* u, float* v, float*** dev_ua, float*** dev_ub, float*** dev_v, unsigned int size, unsigned int n, int device_id) 
 {
-    /*
-    cudaFree(*dev_2_u);
-    cudaFree(*dev_ua);
-    cudaFree(*dev_ub);
-    cudaFree(*dev_v);
-    */
-
+    float* dev_alloc_tmp;
     // READ INPUTS
     text_to_array(u, v);
 
     cudaError_t cudaStatus;
 
-    // Allocate GPU buffers (two input, one output).
-    cudaStatus = cudaMalloc((void**)dev_2_u, 2 * size * sizeof(float));
+    // Allocate GPU memory
+    cudaStatus = cudaMalloc((void**)(&dev_alloc_tmp), 3 * n * size * sizeof(float));
     if (cudaStatus != cudaSuccess) {
         fprintf(stderr, "cudaMalloc failed ---init function---!\n");
         return cudaStatus;  // Return error without using goto
     }
 
-    // splitting the allcated memory for u
-    *dev_ua = *dev_2_u;
-    *dev_ub = *dev_2_u + size;
-
-    cudaStatus = cudaMalloc((void**)dev_v, size * sizeof(float));
-    if (cudaStatus != cudaSuccess) {
-        fprintf(stderr, "cudaMalloc failed ---init function---!\n");
-        return cudaStatus;  // Return error without using goto
+    // splitting the allcated memory for ua, ub and v for each n
+    for (int i = 0; i < n; i++)
+    {
+        (*dev_ua)[i] = &( dev_alloc_tmp[ i * 3 * size ] );
+        (*dev_ub)[i] = &( dev_alloc_tmp[ i * 3 * size + size ] );
+        (*dev_v)[i] = &( dev_alloc_tmp[ i * 3 * size + 2 * size ] );
     }
+    for(int i = 0; i < n; i++)
+    {
+        cudaStatus = cudaMemcpy((*dev_ua)[i], u, size * sizeof(float), cudaMemcpyHostToDevice);
+        if (cudaStatus != cudaSuccess) {
+            fprintf(stderr, "cudaMemcpy failed!\n");
+            return cudaStatus;
+        }
 
-    cudaStatus = cudaMemcpy(*dev_ua, u, size * sizeof(float), cudaMemcpyHostToDevice);
-    if (cudaStatus != cudaSuccess) {
-        fprintf(stderr, "cudaMemcpy failed!\n");
-        return cudaStatus;
-    }
-
-    cudaStatus = cudaMemcpy(*dev_ub, u, size * sizeof(float), cudaMemcpyHostToDevice);
-    if (cudaStatus != cudaSuccess) {
-        fprintf(stderr, "cudaMemcpy failed!\n");
-        return cudaStatus;
-    }
-
-    cudaStatus = cudaMemcpy(*dev_v, v, size * sizeof(float), cudaMemcpyHostToDevice);
-    if (cudaStatus != cudaSuccess) {
-        fprintf(stderr, "cudaMemcpy failed!\n");
-        return cudaStatus;
+        cudaStatus = cudaMemcpy((*dev_v)[i], v, size * sizeof(float), cudaMemcpyHostToDevice);
+        if (cudaStatus != cudaSuccess) {
+            fprintf(stderr, "cudaMemcpy failed!\n");
+            return cudaStatus;
+        }
     }
 
     return cudaSuccess;  // Successful allocation

@@ -1,10 +1,10 @@
-init_n						done
-test_n						?
-iterate_kernel_gsync_restruct_n_B		x
-	copy_g_to_r_n_B				done
-	copy_r_to_g_n_B				done
-	iterate_without_laplace_n_B		done
-	laplace_n_B				done
-	copy_r_to_g_and_no_flux_n_B		x
+init_n									done
+test_n									?
+iterate_kernel_gsync_restruct_n_B		done
+	copy_g_to_r_n_B						done
+	copy_r_to_g_n_B						done
+	iterate_without_laplace_n_B			done
+	laplace_n_B							done
+	copy_r_to_g_and_no_flux_n_B			done
 
-streams						x		
+streams									x		

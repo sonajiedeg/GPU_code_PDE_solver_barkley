@@ -13,3 +13,6 @@ re:
 	rm -f u_sol.txt
 	make
 	./kernel.exe
+
+nTest.exe:
+	nvcc -o	nTest.exe nTest.cu $(CMPL_OPT)

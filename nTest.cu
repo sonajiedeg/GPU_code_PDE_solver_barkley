@@ -30,11 +30,11 @@
     }                                   \
 }
 #define deviceId 0
-#define nKernel 24
-#define transient 8
+#define nKernel 64
+#define transient 3
 #define nIteration 500000
-#define nThread 12
-#define nKernelPerThread 2
+#define nThread 8
+#define nKernelPerThread 8
 
 using namespace std;
 using namespace cooperative_groups;
@@ -233,14 +233,17 @@ cudaError_t dynamicTransformation(float* a, unsigned int size, const int n)
     for (int i = 0; i < transient; i++)
     {
         begin = std::chrono::steady_clock::now();
+#pragma unroll
         for (int k = 0; k < nKernel; k++) { cudaStreamSynchronize(stream[k]); CUERR; }
         // cudaDeviceSynchronize(); CUERR;
+#pragma unroll
         for (int k = 0; k < nKernel; k++)
         {
             // Launch a kernel on the GPU
             cudaLaunchCooperativeKernel((void*)dynamicTransformationKernel, dimGrid, dimBlock, kernelArgs[k], 0, stream[k]);
         }
         // cudaDeviceSynchronize(); CUERR;
+#pragma unroll
         for (int k = 0; k < nKernel; k++) { cudaStreamSynchronize(stream[k]); CUERR; }
         end = std::chrono::steady_clock::now();
         print_runtimes(begin, end);

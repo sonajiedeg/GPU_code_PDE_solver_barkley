@@ -49,12 +49,76 @@ void test(float* c, float* check, int arraySize);
 void print_runtimes(std::chrono::steady_clock::time_point begin, std::chrono::steady_clock::time_point end);
 void initLaunch(float** dev_a, float* a, void* kernelArgs[nKernel][1], cudaStream_t stream[nKernel], int size, int k);
 void parallelStreamSync(cudaStream_t stream[nKernel], int k);
-void launchKernel(void* kernelArgs[nKernel][1], cudaStream_t stream[nKernel], int size, int k);
+void launchKernel_2(void* kernelArgs[nKernel][1], cudaStream_t stream[nKernel], int size, int k);
 void syncLaunchSync(void* kernelArgs[nKernel][1], cudaStream_t stream[nKernel], int size, int k);
 
 
 
-__global__ void dynamicTransformationKernel(float *a)
+__global__ void dynamicTransformationKernel_0(float *a)
+{
+    int i = threadIdx.x;
+    unsigned long long int N = nIteration;
+    float ra = a[i];
+    // this_grid().sync();
+#pragma unroll
+    for (int k = 0; k < N; k++)
+    {
+        if (0 <= ra < 0.5)
+        {
+            ra = 2 * ra;
+        }
+        else if (0.5 <= ra < 1)
+        {
+            ra = 2 * ra - 1;
+        }
+    }
+    a[i] = ra;
+    // this_grid().sync();
+}
+
+__global__ void dynamicTransformationKernel_1(float *a)
+{
+    int i = threadIdx.x;
+    unsigned long long int N = nIteration;
+    float ra = a[i];
+    // this_grid().sync();
+#pragma unroll
+    for (int k = 0; k < N; k++)
+    {
+        if (0 <= ra < 0.5)
+        {
+            ra = 2 * ra;
+        }
+        else if (0.5 <= ra < 1)
+        {
+            ra = 2 * ra - 1;
+        }
+    }
+    a[i] = ra;
+    // this_grid().sync();
+}
+__global__ void dynamicTransformationKernel_2(float *a)
+{
+    int i = threadIdx.x;
+    unsigned long long int N = nIteration;
+    float ra = a[i];
+    // this_grid().sync();
+#pragma unroll
+    for (int k = 0; k < N; k++)
+    {
+        if (0 <= ra < 0.5)
+        {
+            ra = 2 * ra;
+        }
+        else if (0.5 <= ra < 1)
+        {
+            ra = 2 * ra - 1;
+        }
+    }
+    a[i] = ra;
+    // this_grid().sync();
+}
+__global__ void dynamicTransformationKernel_3(float *a)
 {
     int i = threadIdx.x;
     unsigned long long int N = nIteration;
@@ -164,7 +228,7 @@ cudaError_t dynamicTransformation(float *a, unsigned int size)
         {
             cudaStreamSynchronize(stream); CUERR;
             // cudaDeviceSynchronize(); CUERR;
-            cudaLaunchCooperativeKernel((void*)dynamicTransformationKernel, dimGrid, dimBlock, kernelArgs, 0, stream);
+            cudaLaunchCooperativeKernel((void*)dynamicTransformationKernel_0, dimGrid, dimBlock, kernelArgs, 0, stream);
             // cudaDeviceSynchronize(); CUERR;
         }
         end = std::chrono::steady_clock::now();
@@ -240,7 +304,7 @@ cudaError_t dynamicTransformation(float* a, unsigned int size, const int n)
         for (int k = 0; k < nKernel; k++)
         {
             // Launch a kernel on the GPU
-            cudaLaunchCooperativeKernel((void*)dynamicTransformationKernel, dimGrid, dimBlock, kernelArgs[k], 0, stream[k]);
+            cudaLaunchCooperativeKernel((void*)dynamicTransformationKernel_1, dimGrid, dimBlock, kernelArgs[k], 0, stream[k]);
         }
         // cudaDeviceSynchronize(); CUERR;
 #pragma unroll
@@ -312,7 +376,7 @@ cudaError_t dynamicTransformation(float* a, unsigned int size, const int n, cons
         for (int k = 0; k < nThread; k++)
         {
             // Launch a kernel on the GPU
-            threads[k] = thread(launchKernel, kernelArgs, stream, size, k);
+            threads[k] = thread(launchKernel_2, kernelArgs, stream, size, k);
 
             // cudaLaunchCooperativeKernel((void*)dynamicTransformationKernel, dimGrid, dimBlock, kernelArgs[k], 0, stream[k]);
 
@@ -448,13 +512,13 @@ void parallelStreamSync(cudaStream_t stream[nKernel], int k)
     }
 }
 
-void launchKernel( void* kernelArgs[nKernel][1], cudaStream_t stream[nKernel], int size, int k )
+void launchKernel_2( void* kernelArgs[nKernel][1], cudaStream_t stream[nKernel], int size, int k )
 {
     dim3 dimBlock(size, 1, 1);
     dim3 dimGrid(1, 1, 1);
     for (int i = k * nKernelPerThread; (i - k * nKernelPerThread) < nKernelPerThread; i++)
     {
-        cudaLaunchCooperativeKernel((void*)dynamicTransformationKernel, dimGrid, dimBlock, kernelArgs[k], 0, stream[k]);
+        cudaLaunchCooperativeKernel((void*)dynamicTransformationKernel_2, dimGrid, dimBlock, kernelArgs[i], 0, stream[i]);
     }
 }
 
@@ -470,7 +534,7 @@ void syncLaunchSync(void* kernelArgs[nKernel][1], cudaStream_t stream[nKernel], 
     // cudaDeviceSynchronize(); CUERR;
     for (int i = k * nKernelPerThread; (i - k * nKernelPerThread) < nKernelPerThread; i++)
     {
-        cudaLaunchCooperativeKernel((void*)dynamicTransformationKernel, dimGrid, dimBlock, kernelArgs[k], 0, stream[k]);
+        cudaLaunchCooperativeKernel((void*)dynamicTransformationKernel_3, dimGrid, dimBlock, kernelArgs[i], 0, stream[i]);
     }
     // cudaDeviceSynchronize(); CUERR;
     for (int i = k * nKernelPerThread; (i - k * nKernelPerThread) < nKernelPerThread; i++)

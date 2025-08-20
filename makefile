@@ -15,4 +15,6 @@ re:
 	./kernel.exe
 
 nTest.exe:
-	nvcc -o	nTest.exe nTest.cu $(CMPL_OPT)
+	# nvcc -o	nTest.exe nTest.cu $(CMPL_OPT)
+	nvcc --default-stream per-thread ./nTest.cu -o nTest.exe
+	# nvcc --default-stream per-thread ./pthread_test.cu -o pthreads_per_thread

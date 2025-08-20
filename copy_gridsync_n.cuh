@@ -23,9 +23,9 @@ using cooperative_groups::thread_group;
 namespace cg = cooperative_groups;
 
 // copy from global memory to the registers
-static __device__ __forceinline__ void copy_g_to_r_n_B(float* g_ua, float* g_v, float r_u[n_kernel], float r_v[n_kernel], int* n_offset)
+static __device__ __forceinline__ void copy_g_to_r_n_B(float* g_ua, float* g_v, float r_u[nKernel], float r_v[nKernel], int* n_offset)
 {
-    for (int k = 0; k < n_kernel; k++)
+    for (int k = 0; k < nKernel; k++)
     {
         r_u[k] = g_ua[n_offset[k]];
         r_v[k] = g_v[n_offset[k]];
@@ -35,9 +35,10 @@ static __device__ __forceinline__ void copy_g_to_r_n_B(float* g_ua, float* g_v, 
 // copy from registers to global memory
 static __device__ __forceinline__ void copy_r_to_g_n_B(float* g_ub, float* g_v, float* r_u, float* r_v, int* n_offset)
 {
-    for (int k = 0; k < n_kernel; k++)
+    for (int k = 0; k < nKernel; k++)
     {
         g_ub[n_offset[k]] = r_u[k];
         // g_v[n_offset[k]] = r_v[k];
     }
 }
+

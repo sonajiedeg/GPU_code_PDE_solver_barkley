@@ -13,9 +13,12 @@
 #define run_gsync_restruct_int_friend_v2_threadfence 0
 #define run_gsync_restruct_int_friend_v2_threadfence_for 0
 #define run_n_kernel 1
-#define n_kernel 2  // can be in the set of { ? }
+#define nKernel 8  // can be in the set of { ? }
                     // in case n = 32: each block has 1 warp
                     // n = 8 => 256 / 8 = 32 => if n increases more then a warp wont be filled with threads (case A)
+#define jmax 32 // = res / nKernel :   256 / 2 = 128
+//                                      256 / 4 = 64
+//                                      256 / 8 = 32
 
 #define CUERR {                                                            \
     cudaError_t err;                                                       \
@@ -23,13 +26,14 @@
         printf("CUDA error: %s : %s, line %d\n", cudaGetErrorString(err), __FILE__, __LINE__); \
         exit(1);                                                           \
     }                                                                      \
-}    
+}
 
+#define PASS printf(" PASSED FILE: %s, LINE: %d\n", __FILE__, __LINE__);
 
 #include "cuda_runtime.h"
 #include "device_launch_parameters.h"
 #include "copy_gridsync.h"
-#include "copy_gridsync_n.h"
+#include "copy_gridsync_n.cuh"
 #include "iterate_gridsync.h"
 #include "iterate_gridsync_restructure.h"
 #include "iterate_gridsync_restructure_n.cuh"
@@ -79,17 +83,17 @@ int main()
 
     // Add vectors in parallel.
     cudaError_t cudaStatus = iterate_prep(u, v, u_sol, size, res); CUERR;
-
+    PASS;
     // array_to_text(u, res);
 
     // cudaDeviceReset must be called before exiting in order for profiling and
     // tracing tools such as Nsight and Visual Profiler to show complete traces.
-    cudaStatus = cudaDeviceReset();
-
+    cudaStatus = cudaDeviceReset(); CUERR;
+    PASS;
     delete[] u;
     delete[] u_sol;
     delete[] v;
-
+    PASS;
     return 0;
 }
 
@@ -592,58 +596,53 @@ cudaError_t iterate_prep(float* u, float* v, float* u_sol, unsigned int size, in
     if (run_n_kernel)
     {
         // case B
-        dim3 dimBlock_n(32, 32 / n_kernel, 1); // case B
+        dim3 dimBlock_n(32, 32 / nKernel, 1); // case B
         dim3 dimGrid(8, 8, 1);
-        float** dev_ua_n;
-        float** dev_ub_n;
-        float** dev_v_n;
+        float** dev_ua_n = (float**)malloc( nKernel * sizeof(float*) );
+        float** dev_ub_n = (float**)malloc( nKernel * sizeof(float*) );
+        float** dev_v_n = (float**)malloc( nKernel * sizeof(float*) );
         cout << "n kernel \n";
         // Allocate GPU buffers
-        init_n(u, v, &dev_ua_n, &dev_ub_n, &dev_v_n, size, n_kernel, DEVICE_ID); CUERR;
-        // Setting up n number of streams
-        cudaStream_t stream_n[n_kernel];
-        // set persisting cache maximum limit
-        cudaGetDeviceProperties(&prop, DEVICE_ID);
-        L2_size = min(int(prop.l2CacheSize * 0.75), prop.persistingL2CacheMaxSize);
-        cudaDeviceSetLimit(cudaLimitPersistingL2CacheSize, L2_size);
-        // setting stream parameters
-        cudaStreamAttrValue stream_attribute;
-        /*
-        stream_attribute.accessPolicyWindow.base_ptr = reinterpret_cast<void*>(dev_2_u); // Global Memory data pointer
-        stream_attribute.accessPolicyWindow.num_bytes = 2 * res * res * sizeof(float);                    // Number of bytes for persistence access.
-        // (Must be less than cudaDeviceProp::accessPolicyMaxWindowSize)
-        stream_attribute.accessPolicyWindow.hitRatio = 1;                          // Hint for cache hit ratio
-        stream_attribute.accessPolicyWindow.hitProp = cudaAccessPropertyPersisting; // Type of access property on cache hit
-        stream_attribute.accessPolicyWindow.missProp = cudaAccessPropertyStreaming;  // Type of access property on cache miss.
-        */
-
-
-        for(int k = 0; k < n_kernel; k++)
+        init_n(u, v, &dev_ua_n, &dev_ub_n, &dev_v_n, size, nKernel, DEVICE_ID); CUERR;
+        // organising kernel inputs into an array
+        const int argCount = 5;
+        PASS;
+        void*** kernelArgsN  = (void***)malloc( nKernel * sizeof(void**) );
+        // allocate memory
+        for(int i = 0; i < nKernel; i++){ kernelArgsN[i] = (void**)malloc( argCount * sizeof(void*) ); }
+        // allocate memory is missing
+        PASS;
+        for(int k = 0; k < nKernel; k++)
         {
-                                                    // Stream level attributes data structure
-            cudaStreamCreate(&stream_n[k]); CUERR;
-            
-
-            //Set the attributes to a CUDA stream of type cudaStream_t
-            cudaStreamSetAttribute(stream_1, cudaStreamAttributeAccessPolicyWindow, &stream_attribute);
+            PASS;
+            kernelArgsN[k][0] = (void*)&(dev_ua_n[k]);
+            kernelArgsN[k][1] = (void*)&(dev_ub_n[k]);
+            kernelArgsN[k][2] = (void*)&(dev_v_n[k]);
+            kernelArgsN[k][3] = (void*)&res;
+            kernelArgsN[k][4] = (void*)&iteration_limit_per_2;
         }
+        PASS;
+        // Setting up n number of streams
+        cudaStream_t stream_n[nKernel];
+        cudaDeviceProp deviceProp;
+        cudaGetDeviceProperties(&deviceProp, DEVICE_ID);  CUERR;
+        deviceProp.concurrentKernels = 1;
+        deviceProp.cooperativeLaunch = 1;
 
+        // create streams
+        for(int k = 0; k < nKernel; k++) { cudaStreamCreate(&stream_n[k]); CUERR; }
         begin = std::chrono::steady_clock::now();
-        cudaDeviceSynchronize();
-        for(int k = 0; k < n_kernel; k++){
-            cudaStreamSynchronize(stream_n[k]); CUERR;
-        }
-        for(int k = 0; k < n_kernel; k++)
+        // sync streams
+        for(int k = 0; k < nKernel; k++){ cudaStreamSynchronize(stream_n[k]); CUERR; }
+        // launch kernels
+        for(int k = 0; k < nKernel; k++)
         {
             cout << "n =" << k << endl;
-            void* kernelArgs_n[] = { (void*)&(dev_ua_n[k]), (void*)&(dev_ub_n[k]), (void*)&(dev_v_n[k]), (void*)&res, (void*)&iteration_limit_per_2 };
-            // cudaDeviceSynchronize();
-            cudaLaunchCooperativeKernel((void*)iterate_kernel_gsync_restruct_n_B, dimGrid, dimBlock_n, kernelArgs_n, 0, stream_n[k]);    
+            // void* kernelArgs_n[] = { (void*)&(dev_ua_n[k]), (void*)&(dev_ub_n[k]), (void*)&(dev_v_n[k]), (void*)&res, (void*)&iteration_limit_per_2 };
+            cudaLaunchCooperativeKernel((void*)iterate_kernel_gsync_restruct_n_B, dimGrid, dimBlock_n, kernelArgsN[k], 0, stream_n[k]);    
         } // end of launching n kernels
-        cudaDeviceSynchronize();
-        for(int k = 0; k < n_kernel; k++){
-            cudaStreamSynchronize(stream_n[k]); CUERR;
-        }
+        // sync streams
+        for(int k = 0; k < nKernel; k++){ cudaStreamSynchronize(stream_n[k]); CUERR;}
         end = std::chrono::steady_clock::now();
         print_runtimes(begin, end);
         // Check for any errors launching the kernel
@@ -652,10 +651,11 @@ cudaError_t iterate_prep(float* u, float* v, float* u_sol, unsigned int size, in
         // any errors encountered during the launch.
         cudaDeviceSynchronize(); CUERR;
         // Copy output vector from GPU buffer to host memory.
-        cudaMemcpy(u, dev_ua, size * sizeof(int), cudaMemcpyDeviceToHost); CUERR;
+        // cudaMemcpy(u, dev_ua, size * sizeof(int), cudaMemcpyDeviceToHost); CUERR;
         cudaDeviceSynchronize();
         array_to_text(u, res);
-        test_n(u, size);
+        // test_n(u, size);
+        PASS;
     }
 //----------------------------------------------------------------------------------
 

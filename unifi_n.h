@@ -8,36 +8,26 @@ cudaError_t init_n(float* u, float* v, float*** dev_ua, float*** dev_ub, float**
     text_to_array(u, v);
 
     cudaError_t cudaStatus;
-
     // Allocate GPU memory
-    cudaStatus = cudaMalloc((void**)(&dev_alloc_tmp), 3 * n * size * sizeof(float));
-    if (cudaStatus != cudaSuccess) {
-        fprintf(stderr, "cudaMalloc failed ---init function---!\n");
-        return cudaStatus;  // Return error without using goto
-    }
-
+    cudaStatus = cudaMalloc((void**)(&dev_alloc_tmp), 3 * n * size * sizeof(float)); CUERR;
     // splitting the allcated memory for ua, ub and v for each n
     for (int i = 0; i < n; i++)
     {
+        PASS;
         (*dev_ua)[i] = &( dev_alloc_tmp[ i * 3 * size ] );
         (*dev_ub)[i] = &( dev_alloc_tmp[ i * 3 * size + size ] );
         (*dev_v)[i] = &( dev_alloc_tmp[ i * 3 * size + 2 * size ] );
+        // cudaMalloc((void**)(dev_ua[i]), size * sizeof(float)); CUERR;
+        // cudaMalloc((void**)(dev_ub[i]), size * sizeof(float)); CUERR;
+        // cudaMalloc((void**)(dev_v[i]), size * sizeof(float)); CUERR;
     }
+    PASS;
     for(int i = 0; i < n; i++)
     {
-        cudaStatus = cudaMemcpy((*dev_ua)[i], u, size * sizeof(float), cudaMemcpyHostToDevice);
-        if (cudaStatus != cudaSuccess) {
-            fprintf(stderr, "cudaMemcpy failed!\n");
-            return cudaStatus;
-        }
+        cudaStatus = cudaMemcpy((*dev_ua)[i], u, size * sizeof(float), cudaMemcpyHostToDevice); CUERR;
 
-        cudaStatus = cudaMemcpy((*dev_v)[i], v, size * sizeof(float), cudaMemcpyHostToDevice);
-        if (cudaStatus != cudaSuccess) {
-            fprintf(stderr, "cudaMemcpy failed!\n");
-            return cudaStatus;
-        }
+        cudaStatus = cudaMemcpy((*dev_v)[i], v, size * sizeof(float), cudaMemcpyHostToDevice); CUERR;
     }
-
     return cudaSuccess;  // Successful allocation
 }
 

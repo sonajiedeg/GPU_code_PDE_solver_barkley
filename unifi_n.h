@@ -1,7 +1,8 @@
 #include <string>
 
 // allocate for n kernels
-cudaError_t init_n(float* u, float* v, float*** dev_ua, float*** dev_ub, float*** dev_v, unsigned int size, unsigned int n, int device_id) 
+// cudaError_t init_n(float* u, float* v, float*** dev_ua, float*** dev_ub, float*** dev_v, unsigned int size, unsigned int n, int device_id) 
+cudaError_t init_n(float* u, float* v, float** dev_ua[nKernel], float** dev_ub[nKernel], float** dev_v[nKernel], unsigned int size, unsigned int n, int device_id) 
 {
     float* dev_alloc_tmp;
     // READ INPUTS

@@ -58,6 +58,8 @@
 #ifdef __INTELLISENSE__
 #undef __CUDACC__
 #endif // __INTELLISENSE__
+#include "type.h"
+
 
 #define DEVICE_ID 1
 #define ITERATIONS 5000
@@ -598,18 +600,23 @@ cudaError_t iterate_prep(float* u, float* v, float* u_sol, unsigned int size, in
         // case B
         dim3 dimBlock_n(32, 32 / nKernel, 1); // case B
         dim3 dimGrid(8, 8, 1);
-        float** dev_ua_n = (float**)malloc( nKernel * sizeof(float*) );
-        float** dev_ub_n = (float**)malloc( nKernel * sizeof(float*) );
-        float** dev_v_n = (float**)malloc( nKernel * sizeof(float*) );
+        // float** dev_ua_n = (float**)malloc( nKernel * sizeof(float*) );
+        // float** dev_ub_n = (float**)malloc( nKernel * sizeof(float*) );
+        // float** dev_v_n = (float**)malloc( nKernel * sizeof(float*) );
+        float* dev_ua_n[nKernel];
+        float* dev_ub_n[nKernel];
+        float* dev_v_n[nKernel];
         cout << "n kernel \n";
         // Allocate GPU buffers
-        init_n(u, v, &dev_ua_n, &dev_ub_n, &dev_v_n, size, nKernel, DEVICE_ID); CUERR;
+        type(&dev_ua_n);
+        // init_n(u, v, &dev_ua_n, &dev_ub_n, &dev_v_n, size, nKernel, DEVICE_ID); CUERR;
         // organising kernel inputs into an array
-        const int argCount = 5;
+        const int nArg = 5;
         PASS;
-        void*** kernelArgsN  = (void***)malloc( nKernel * sizeof(void**) );
+        // void*** kernelArgsN  = (void***)malloc( nKernel * sizeof(void**) );
+        void* kernelArgsN[nKernel][nArg];
         // allocate memory
-        for(int i = 0; i < nKernel; i++){ kernelArgsN[i] = (void**)malloc( argCount * sizeof(void*) ); }
+        // for(int i = 0; i < nKernel; i++){ kernelArgsN[i] = (void**)malloc( nArg * sizeof(void*) ); }
         // allocate memory is missing
         PASS;
         for(int k = 0; k < nKernel; k++)
@@ -637,7 +644,7 @@ cudaError_t iterate_prep(float* u, float* v, float* u_sol, unsigned int size, in
         // launch kernels
         for(int k = 0; k < nKernel; k++)
         {
-            cout << "n =" << k << endl;
+            // cout << "n =" << k << endl;
             // void* kernelArgs_n[] = { (void*)&(dev_ua_n[k]), (void*)&(dev_ub_n[k]), (void*)&(dev_v_n[k]), (void*)&res, (void*)&iteration_limit_per_2 };
             cudaLaunchCooperativeKernel((void*)iterate_kernel_gsync_restruct_n_B, dimGrid, dimBlock_n, kernelArgsN[k], 0, stream_n[k]);    
         } // end of launching n kernels

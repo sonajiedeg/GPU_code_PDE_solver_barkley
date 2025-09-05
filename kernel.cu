@@ -13,12 +13,14 @@
 #define run_gsync_restruct_int_friend_v2_threadfence 0
 #define run_gsync_restruct_int_friend_v2_threadfence_for 0
 #define run_n_kernel 1
-#define nKernel 8  // can be in the set of { ? }
+#define nKernel 1  // can be in the set of { ? }
                     // in case n = 32: each block has 1 warp
                     // n = 8 => 256 / 8 = 32 => if n increases more then a warp wont be filled with threads (case A)
-#define jmax 32 // = res / nKernel :   256 / 2 = 128
+#define jmax 256 // = res / nKernel :   256 / 1 = 256
+//                                      256 / 2 = 128
 //                                      256 / 4 = 64
 //                                      256 / 8 = 32
+#define run_n_kernel_no_func 0
 
 #define CUERR {                                                            \
     cudaError_t err;                                                       \
@@ -37,6 +39,7 @@
 #include "iterate_gridsync.h"
 #include "iterate_gridsync_restructure.h"
 #include "iterate_gridsync_restructure_n.cuh"
+#include "iterate_gridsync_restructure_n_no_func.cuh"
 #include "iterate_gridsync_restructure_int_friend.h"
 #include "iterate_gridsync_restructure_int_friend_v2.h"
 #include "iterate_gridsync_restructure_int_friend_v2_threadfence.h"
@@ -119,7 +122,8 @@ cudaError_t iterate_prep(float* u, float* v, float* u_sol, unsigned int size, in
     void* kernel_args_for[] = { (void*)&dev_ua, (void*)&dev_ub, (void*)&dev_v, (void*)&res, (void*)&iteration_limit_per_2, (void*)&ivar };
     dim3 dimBlock(32, 32, 1);
     dim3 dimGrid(8, 8, 1);
-
+    dim3 dimBlock_n(32, 32 / nKernel, 1); // case B
+    // dim3 dimGrid(8, 8, 1);
     //measure elapsed time
     std::chrono::steady_clock::time_point begin;
     std::chrono::steady_clock::time_point end;
@@ -598,8 +602,81 @@ cudaError_t iterate_prep(float* u, float* v, float* u_sol, unsigned int size, in
     if (run_n_kernel)
     {
         // case B
-        dim3 dimBlock_n(32, 32 / nKernel, 1); // case B
-        dim3 dimGrid(8, 8, 1);
+        // dim3 dimBlock_n(32, 32 / nKernel, 1); // case B
+        // dim3 dimGrid(8, 8, 1);
+        // float** dev_ua_n = (float**)malloc( nKernel * sizeof(float*) );
+        // float** dev_ub_n = (float**)malloc( nKernel * sizeof(float*) );
+        // float** dev_v_n = (float**)malloc( nKernel * sizeof(float*) );
+        const int nArg = 5;
+        float* dev_ua_n[nKernel];
+        float* dev_ub_n[nKernel];
+        float* dev_v_n[nKernel];
+        cout << "n kernel \n";
+        // Allocate GPU buffers
+        type(&dev_ua_n);
+        // init_n(u, v, &dev_ua_n, &dev_ub_n, &dev_v_n, size, nKernel, DEVICE_ID); CUERR;
+        // organising kernel inputs into an array
+        
+        PASS;
+        // void*** kernelArgsN  = (void***)malloc( nKernel * sizeof(void**) );
+        void* kernelArgsN[nKernel][nArg];
+        // allocate memory
+        // for(int i = 0; i < nKernel; i++){ kernelArgsN[i] = (void**)malloc( nArg * sizeof(void*) ); }
+        // allocate memory is missing
+        PASS;
+        for(int k = 0; k < nKernel; k++)
+        {
+            PASS;
+            kernelArgsN[k][0] = (void*)&(dev_ua_n[k]);
+            kernelArgsN[k][1] = (void*)&(dev_ub_n[k]);
+            kernelArgsN[k][2] = (void*)&(dev_v_n[k]);
+            kernelArgsN[k][3] = (void*)&res;
+            kernelArgsN[k][4] = (void*)&iteration_limit_per_2;
+        }
+        PASS;
+        // Setting up n number of streams
+        cudaStream_t stream_n[nKernel];
+        cudaDeviceProp deviceProp;
+        cudaGetDeviceProperties(&deviceProp, DEVICE_ID);  CUERR;
+        deviceProp.concurrentKernels = 1;
+        deviceProp.cooperativeLaunch = 1;
+        // create streams
+        for(int k = 0; k < nKernel; k++) { cudaStreamCreate(&stream_n[k]); CUERR; }
+        begin = std::chrono::steady_clock::now();
+        // sync streams
+        for(int k = 0; k < nKernel; k++){ cudaStreamSynchronize(stream_n[k]); CUERR; }
+        // launch kernels
+        for(int k = 0; k < nKernel; k++)
+        {
+            // cout << "n =" << k << endl;
+            // void* kernelArgs_n[] = { (void*)&(dev_ua_n[k]), (void*)&(dev_ub_n[k]), (void*)&(dev_v_n[k]), (void*)&res, (void*)&iteration_limit_per_2 };
+            cudaLaunchCooperativeKernel((void*)iterate_kernel_gsync_restruct_n_B, dimGrid, dimBlock_n, kernelArgsN[k], 0, stream_n[k]);    
+        } // end of launching n kernels
+        // sync streams
+        for(int k = 0; k < nKernel; k++){ cout << "k = " << k << endl; cudaStreamSynchronize(stream_n[k]); } 
+        CUERR;
+        end = std::chrono::steady_clock::now();
+        print_runtimes(begin, end);
+        // Check for any errors launching the kernel
+        cudaGetLastError(); CUERR;
+        // cudaDeviceSynchronize waits for the kernel to finish, and returns
+        // any errors encountered during the launch.
+        cudaDeviceSynchronize(); CUERR;
+        // Copy output vector from GPU buffer to host memory.
+        // cudaMemcpy(u, dev_ua, size * sizeof(int), cudaMemcpyDeviceToHost); CUERR;
+        cudaDeviceSynchronize();
+        array_to_text(u, res);
+        // test_n(u, size);
+        PASS;
+
+    //-------------------------------------------------------------------------------------------------
+    //---------------------------------- GRIDSYNC RESTRUCT KERNEL RUN N KERNELS NO FUNC----------------
+    //-------------------------------------------------------------------------------------------------
+    if (run_n_kernel_no_func)
+    {
+        // case B
+        // dim3 dimBlock_n(32, 32 / nKernel, 1); // case B
+        // dim3 dimGrid(8, 8, 1);
         // float** dev_ua_n = (float**)malloc( nKernel * sizeof(float*) );
         // float** dev_ub_n = (float**)malloc( nKernel * sizeof(float*) );
         // float** dev_v_n = (float**)malloc( nKernel * sizeof(float*) );
@@ -646,7 +723,7 @@ cudaError_t iterate_prep(float* u, float* v, float* u_sol, unsigned int size, in
         {
             // cout << "n =" << k << endl;
             // void* kernelArgs_n[] = { (void*)&(dev_ua_n[k]), (void*)&(dev_ub_n[k]), (void*)&(dev_v_n[k]), (void*)&res, (void*)&iteration_limit_per_2 };
-            cudaLaunchCooperativeKernel((void*)iterate_kernel_gsync_restruct_n_B, dimGrid, dimBlock_n, kernelArgsN[k], 0, stream_n[k]);    
+            cudaLaunchCooperativeKernel((void*)iterate_kernel_gsync_restruct_n_B_no_func, dimGrid, dimBlock_n, kernelArgsN[k], 0, stream_n[k]);    
         } // end of launching n kernels
         // sync streams
         for(int k = 0; k < nKernel; k++){ cudaStreamSynchronize(stream_n[k]); CUERR;}
@@ -664,6 +741,7 @@ cudaError_t iterate_prep(float* u, float* v, float* u_sol, unsigned int size, in
         // test_n(u, size);
         PASS;
     }
+}
 //----------------------------------------------------------------------------------
 
 //----------------------------------------------------------------------------------

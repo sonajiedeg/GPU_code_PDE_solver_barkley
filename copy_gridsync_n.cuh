@@ -31,7 +31,7 @@ static __device__ __forceinline__ void copy_g_to_r_n_B(float* g_ua, float* g_v, 
         r_v[k] = g_v[n_offset[k]];
     }
 }
-
+/*
 // copy from registers to global memory
 static __device__ __forceinline__ void copy_r_to_g_n_B(float* g_ub, float* g_v, float* r_u, float* r_v, int* n_offset)
 {
@@ -41,4 +41,4 @@ static __device__ __forceinline__ void copy_r_to_g_n_B(float* g_ub, float* g_v, 
         // g_v[n_offset[k]] = r_v[k];
     }
 }
-
+*/

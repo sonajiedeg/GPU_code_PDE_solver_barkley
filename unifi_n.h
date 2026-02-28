@@ -85,7 +85,7 @@ bool test_n(float* u, int size)
 			{
 				cout << "kernel number: " << i << ", difference at: " << j << "\n";
 				cout << "difference: " << u[ i*size + j ] - u_comp_test[j] << "\n";
-				cotu << "u[j]: " << u[ i*size + j ] << ", u_comp[j]: " << u_comp_test[j] << "\n";
+				cout << "u[j]: " << u[ i*size + j ] << ", u_comp[j]: " << u_comp_test[j] << "\n";
 				cout << "test failed!" << "\n";
 
 	            for (int k = 0; k < size; k++)

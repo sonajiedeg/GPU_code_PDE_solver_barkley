@@ -652,6 +652,7 @@ cudaError_t iterate_prep(float* u, float* v, float* u_sol, unsigned int size, in
             // void* kernelArgs_n[] = { (void*)&(dev_ua_n[k]), (void*)&(dev_ub_n[k]), (void*)&(dev_v_n[k]), (void*)&res, (void*)&iteration_limit_per_2 };
             cudaLaunchCooperativeKernel((void*)iterate_kernel_gsync_restruct_n_B, dimGrid, dimBlock_n, kernelArgsN[k], 0, stream_n[k]);    
         } // end of launching n kernels
+        cudaDeviceSynchronize(); CUERR;
         // sync streams
         for(int k = 0; k < nKernel; k++){ cout << "k = " << k << endl; cudaStreamSynchronize(stream_n[k]); } 
         CUERR;

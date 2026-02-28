@@ -42,3 +42,23 @@ static __device__ __forceinline__ void copy_r_to_g_n_B(float* g_ub, float* g_v, 
     }
 }
 */
+
+// write n sim result to a txt file
+void array_to_text_n(float* u_sol, int res)
+{
+    const unsigned int s = res * res;
+    fstream newfile;
+    newfile.open("u_sol_n.txt", ios::out);
+    if (newfile.is_open())
+    {
+        newfile << scientific << setprecision(17);
+        // max_digits10 ensures no loss of precision
+
+        for (int i = 0; i < s * nKernel; i++)
+        {
+            newfile << u_sol[i] << "\n";
+        }
+
+        newfile.close();
+    }
+};

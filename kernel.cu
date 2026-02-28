@@ -64,7 +64,7 @@
 #include "type.h"
 
 
-#define DEVICE_ID 1
+#define DEVICE_ID 0
 #define ITERATIONS 5000
 
 using namespace std;
@@ -663,10 +663,11 @@ cudaError_t iterate_prep(float* u, float* v, float* u_sol, unsigned int size, in
         // any errors encountered during the launch.
         cudaDeviceSynchronize(); CUERR;
         // Copy output vector from GPU buffer to host memory.
-        // cudaMemcpy(u, dev_ua, size * sizeof(int), cudaMemcpyDeviceToHost); CUERR;
+		float* u_test = new float[size * nKernel];
+        for(int k = 0; k < nKernel; k++ ){cudaMemcpy(&(u_test[k*size]), &(dev_ua_n[k]), size * sizeof(float), cudaMemcpyDeviceToHost); CUERR;}
         cudaDeviceSynchronize();
-        array_to_text(u, res);
-        // test_n(u, size);
+		array_to_text_n(u_test, res);
+        test_n(u_test, size);
         PASS;
 
     //-------------------------------------------------------------------------------------------------
@@ -735,9 +736,10 @@ cudaError_t iterate_prep(float* u, float* v, float* u_sol, unsigned int size, in
         // any errors encountered during the launch.
         cudaDeviceSynchronize(); CUERR;
         // Copy output vector from GPU buffer to host memory.
-        // cudaMemcpy(u, dev_ua, size * sizeof(int), cudaMemcpyDeviceToHost); CUERR;
+		float* u_test = new float[size * nKernel];
+        for(int k = 0; k < nKernel; k++ ){cudaMemcpy(&(u_test[k*size]), &(dev_ua_n[k]), size * sizeof(float), cudaMemcpyDeviceToHost); CUERR;}
         cudaDeviceSynchronize();
-        array_to_text(u, res);
+		array_to_text_n(u_test, res);
         // test_n(u, size);
         PASS;
     }

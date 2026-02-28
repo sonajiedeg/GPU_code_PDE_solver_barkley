@@ -77,6 +77,31 @@ bool test_n(float* u, int size)
             return false;
         }
     }
+	for (int i = 0; i < nKernel; i++)
+	{
+		for (int j = 0; j < size; j++)
+		{
+			if( u[ i*size + j ] != u_comp_test[j] )
+			{
+				cout << "kernel number: " << i << ", difference at: " << j << "\n";
+				cout << "difference: " << u[ i*size + j ] - u_comp_test[j] << "\n";
+				cotu << "u[j]: " << u[ i*size + j ] << ", u_comp[j]: " << u_comp_test[j] << "\n";
+				cout << "test failed!" << "\n";
+
+	            for (int k = 0; k < size; k++)
+				{
+					if (u[k] != u_comp_test[k])
+					{
+						avg_abs_diff += abs(u[ i*size + k ] - u_comp_test[k]) / 65536;
+					}
+				}
+
+				cout << "average absolut difference: " << avg_abs_diff << "\n";
+
+				return false;
+			}
+		}
+	}
 
 
     cout << "test passed?" << "\n";

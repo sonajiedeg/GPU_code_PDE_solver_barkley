@@ -105,7 +105,7 @@ __global__ void iterate_kernel_gi(float* g_ua, float* g_ub, float* g_v, int res,
         {
             // ----- Iteration step 1 -----
             //r_un = 0;
-            iterate_without_laplace(r_ua, r_v, &r_un, &r_vn);
+            iterate_without_laplace_gi(r_ua, r_v, &r_un, &r_vn);
             //whole_grid.sync();
 
             // ----- Laplace -----
@@ -122,7 +122,7 @@ __global__ void iterate_kernel_gi(float* g_ua, float* g_ub, float* g_v, int res,
 
             // ----- Iteration step 2 -----
             //r_ua = 0;
-            iterate_without_laplace(r_un, r_vn, &r_ua, &r_v);
+            iterate_without_laplace_gi(r_un, r_vn, &r_ua, &r_v);
             //whole_grid.sync();
 
             // ----- Laplace -----

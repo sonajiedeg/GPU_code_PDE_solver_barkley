@@ -1,10 +1,64 @@
-    #include "cuda_runtime.h"
+#include "cuda_runtime.h"
 
-
+__const__ float repsilon = 1 / 0.02;	// Inkább: repsilon = 1.0/0.02
+__const__ float ra = 1 / 0.64;		// Inkább: ra = 1.0/0.64
+__const__ float b = 0.05;
+__const__ float dt = 0.0076893502846360206604003906250000000000;
+__const__ float ccc = 0.0335952863097190856933593750000000000000;
 
 static __device__ __forceinline__ void copy_r_to_g_and_no_flux(float* g_ub, float r_un, int res, int i, int j, int ThreadOffset);
 static __device__ __forceinline__ void laplace_gi(float* g_ua, float* r_un, int res, int i, int j, int ThreadOffset, int within_simspace_inner, float* lap_p, float* lap_n, float* lap_s);
 static __device__ __forceinline__ void copy_r_to_g_and_no_flux_int_friend(float* g_ub, float r_un, int res, int i, int j, int ThreadOffset, bool j_eq_1, bool j_eq_res_m_2, bool i_eq_1, bool i_eq_res_m_2, int threadoffset_p_one, int threadoffset_m_one, int threadoffset_p_res, int threadoffset_m_res, int within_simspace_inner);
+
+// deal with laplace
+static __device__ __forceinline__ void laplace_gi(float* g_ua, float* r_un, int res, int i, int j, int ThreadOffset, int within_simspace_inner, float* lap_p, float* lap_n, float* lap_s)
+{
+    if (within_simspace_inner)       // INTO REG: within_simspace_inner
+    {
+        float r_L = 0;
+        // Nem nagy a stencil, kilehet bontani teljesen:
+        // float* g_ua_act = g_ua + ThreadOffset; // Létrehozunk egy új pointert ami az aktuális thread megfelelõ elemére mutat, 1 INT ADD     // INTO REG: lap_p
+        r_L += -20 * lap_p[0];
+        r_L += 4 * lap_p[+1];
+        r_L += 4 * lap_p[-1];
+
+        // g_ua_act = g_ua_act - res; // Eltoljuk a pointert 1 sorral feljebb, 1 INT ADD         // INTO REG: lap_s
+        r_L += 4 * lap_s[0];
+        r_L += 1 * lap_s[+1];
+        r_L += 1 * lap_s[-1];
+
+        // g_ua_act = g_ua_act + 2 * res; // Eltoljuk a pointert 2 sorral lejjebb, 1 INT FMA       // INTO REG: lap_n
+        r_L += 4 * lap_n[0];
+        r_L += 1 * lap_n[+1];
+        r_L += 1 * lap_n[-1];
+
+        *r_un += ccc * r_L;
+    }
+}
+
+// iterate one timestep without laplace
+static __device__ __forceinline__ void iterate_without_laplace(const float r_ua, const float r_v, float* r_un, float* r_vn)
+{
+    float u_th;
+
+    // ----- constants -----
+    // Ezeket vagy a constant vagy a shared memóriába raknám.
+    // Constant memóriába úgy is be tudod "rakni" ha beégeted a számot ahol használod.
+    // Ha változtatni akarod, akkor lehet #define -t is használni (a global függvényen kívül természetesen).
+    // DE NEM KRITIKUS
+    /*
+    const float epsilon = 0.02;	// Inkább: repsilon = 1.0/0.02
+    const float a = 0.64;		// Inkább: ra = 1.0/0.64
+    */
+
+
+    // Az osztásokat kicserélnémreciprokkal való szorzásra! Lásd a kommenteket fent.
+    // Az osztások nagyon lassúak, kb 50-70 szer lassabb mint egy szorzás vagy összeadás/kivonás
+    u_th = (r_v + b) * ra; // ( r_v + b ) * ra // ez a sor összevonható lenne a +2. sorral a +2. sorban
+    *r_vn = r_v + dt * (r_ua - r_v);
+    *r_un = r_ua + dt * repsilon * r_ua * (1 - r_ua) * (r_ua - u_th); // ... dt * repsilon * r_ua ...
+    
+}
 
 
 __global__ void iterate_kernel_gsync_restruct_int_friend(float* g_ua, float* g_ub, float* g_v, int res, int iteration_limit_per_2)

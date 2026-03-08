@@ -4,7 +4,10 @@
 //-------------------------------------------------
 
 #define run_gsync_restruct_int_friend 1
-
+#define DEVICE_ID 0
+#define ITERATIONS 5000
+#define SNAPSHOT 1		// 1=>save snapshot, 0=>not save snapshot
+#define SNAP_MODULUS 10		// take snapshot if k % SNAP_MODULUS == 0
 
 #define CUERR {                                                            \
     cudaError_t err;                                                       \
@@ -34,9 +37,6 @@
 #ifdef __INTELLISENSE__
 #undef __CUDACC__
 #endif // __INTELLISENSE__
-
-#define DEVICE_ID 0
-#define ITERATIONS 5000
 
 using namespace std;
 using namespace cooperative_groups;

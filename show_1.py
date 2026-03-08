@@ -3,9 +3,9 @@ import matplotlib.pyplot as plt
 
 res = 256
 
-dir = r'C:\Users\Gedei Janos Jonatan\Documents\1\PROJECT\copy_from_server'
-s1 = r'\u_sol_4_2_dt.txt'
-s1 = r'\u_comp_test_5000.txt'
+dir = r"/mnt/c/Users/Gedei Janos Jonatan/Dokumentumok/LaTeX Projects/MSc-repo/3/SonoChem/GPU_code_PDE_solver_barkley/"
+s1 = r"u_sol_4_2_dt.txt"
+s1 = r"u_comp_test_5000.txt"
 
 
 # Read data from files
@@ -20,7 +20,7 @@ u_sol = u_sol.reshape((res, res))
 vmin_value = -0.5
 vmax_value = 0.5
 
-plt.figure(figsize=(6, 4))
+plt.figure(figsize=(9, 6))
 heatmap = plt.imshow(u_sol, cmap='winter', interpolation='nearest', vmin=vmin_value, vmax=vmax_value)
 plt.gca().invert_yaxis()
 #plt.colorbar()

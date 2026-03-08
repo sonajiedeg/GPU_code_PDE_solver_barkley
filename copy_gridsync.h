@@ -74,6 +74,7 @@ void text_to_array(float* u, float* v) {
     }
 }
 
+
 /*
 void array_to_text(float* u_sol, int res)
 {
@@ -106,6 +107,25 @@ void array_to_text(float* u_sol, int res)
         for (int i = 0; i < s; i++)
         {
             newfile << u_sol[i] << "\n";
+        }
+
+        newfile.close();
+    }
+};
+
+void snap_to_text(float* uSnap, int res)
+{
+    const unsigned int s = res * res;
+    fstream newfile;
+    newfile.open("u_snap.txt", ios::out);
+    if (newfile.is_open())
+    {
+        newfile << scientific << setprecision(17);
+        // max_digits10 ensures no loss of precision
+
+        for (int i = 0; i < s *	int( ITERATIONS / SNAP_MODULUS / 2 ); i++)
+        {
+            newfile << uSnap[i] << "\n";
         }
 
         newfile.close();

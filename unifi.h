@@ -1,6 +1,47 @@
 #include <string>
 
 
+cudaError_t init(float* u, float* v, float** dev_2_u, float** dev_ua, float** dev_ub, float** dev_v, unsigned int size, int device_id, float** dev_snap);
+
+cudaError_t init(float* u, float* v, float** dev_2_u, float** dev_ua, float** dev_ub, float** dev_v, unsigned int size, int device_id, float** dev_snap);
+
+
+
+cudaError_t init(float* u, float* v, float** dev_2_u, float** dev_ua, float** dev_ub, float** dev_v, unsigned int size, int device_id, float** dev_snap)
+{
+    /*
+    cudaFree(*dev_2_u);
+    cudaFree(*dev_ua);
+    cudaFree(*dev_ub);
+    cudaFree(*dev_v);
+    */
+
+    // READ INPUTS
+    text_to_array(u, v);
+
+    cudaError_t cudaStatus;
+
+    // Allocate GPU buffers (two input, one output).
+    cudaStatus = cudaMalloc((void**)dev_2_u, 2 * size * sizeof(float)); CUERR;
+
+    // splitting the allcated memory for u
+    *dev_ua = *dev_2_u;
+    *dev_ub = *dev_2_u + size;
+
+    cudaStatus = cudaMalloc((void**)dev_v, size * sizeof(float)); CUERR;
+
+    cudaStatus = cudaMemcpy(*dev_ua, u, size * sizeof(float), cudaMemcpyHostToDevice); CUERR;
+
+    cudaStatus = cudaMemcpy(*dev_ub, u, size * sizeof(float), cudaMemcpyHostToDevice); CUERR;
+
+    cudaStatus = cudaMemcpy(*dev_v, v, size * sizeof(float), cudaMemcpyHostToDevice); CUERR;
+	// allocate mem for snapshots
+    cudaStatus = cudaMalloc((void**)dev_snap, size * sizeof(float) * ( int( ITERATIONS / SNAP_MODULUS / 2 ) ) ); CUERR;
+
+	cudaStatus = cudaGetLastError();
+    return cudaSuccess;  // Successful allocation
+}
+
 cudaError_t init(float* u, float* v, float** dev_2_u, float** dev_ua, float** dev_ub, float** dev_v, unsigned int size, int device_id)
 {
     /*
@@ -16,40 +57,21 @@ cudaError_t init(float* u, float* v, float** dev_2_u, float** dev_ua, float** de
     cudaError_t cudaStatus;
 
     // Allocate GPU buffers (two input, one output).
-    cudaStatus = cudaMalloc((void**)dev_2_u, 2 * size * sizeof(float));
-    if (cudaStatus != cudaSuccess) {
-        fprintf(stderr, "cudaMalloc failed ---init function---!\n");
-        return cudaStatus;  // Return error without using goto
-    }
+    cudaStatus = cudaMalloc((void**)dev_2_u, 2 * size * sizeof(float)); CUERR;
 
     // splitting the allcated memory for u
     *dev_ua = *dev_2_u;
     *dev_ub = *dev_2_u + size;
 
-    cudaStatus = cudaMalloc((void**)dev_v, size * sizeof(float));
-    if (cudaStatus != cudaSuccess) {
-        fprintf(stderr, "cudaMalloc failed ---init function---!\n");
-        return cudaStatus;  // Return error without using goto
-    }
+    cudaStatus = cudaMalloc((void**)dev_v, size * sizeof(float)); CUERR;
 
-    cudaStatus = cudaMemcpy(*dev_ua, u, size * sizeof(float), cudaMemcpyHostToDevice);
-    if (cudaStatus != cudaSuccess) {
-        fprintf(stderr, "cudaMemcpy failed!\n");
-        return cudaStatus;
-    }
+    cudaStatus = cudaMemcpy(*dev_ua, u, size * sizeof(float), cudaMemcpyHostToDevice); CUERR;
 
-    cudaStatus = cudaMemcpy(*dev_ub, u, size * sizeof(float), cudaMemcpyHostToDevice);
-    if (cudaStatus != cudaSuccess) {
-        fprintf(stderr, "cudaMemcpy failed!\n");
-        return cudaStatus;
-    }
+    cudaStatus = cudaMemcpy(*dev_ub, u, size * sizeof(float), cudaMemcpyHostToDevice); CUERR;
 
-    cudaStatus = cudaMemcpy(*dev_v, v, size * sizeof(float), cudaMemcpyHostToDevice);
-    if (cudaStatus != cudaSuccess) {
-        fprintf(stderr, "cudaMemcpy failed!\n");
-        return cudaStatus;
-    }
+    cudaStatus = cudaMemcpy(*dev_v, v, size * sizeof(float), cudaMemcpyHostToDevice); CUERR;
 
+	cudaStatus = cudaGetLastError();
     return cudaSuccess;  // Successful allocation
 }
 

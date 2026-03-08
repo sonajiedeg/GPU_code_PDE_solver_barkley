@@ -1,20 +1,19 @@
-﻿// unified
-//-------------------------------------------------
-//---------- DEFINE WHICH KERNELS TO RUN ----------
-//-------------------------------------------------
+﻿//-------------------------------------------------------
+//----------DEFINE RUN PARAMETERS------------------------
+//-------------------------------------------------------
 
 #define run_gsync_restruct_int_friend 1
 #define DEVICE_ID 0
 #define ITERATIONS 5000
-#define SNAPSHOT 1		// 1=>save snapshot, 0=>not save snapshot
-#define SNAP_MODULUS 10		// take snapshot if k % SNAP_MODULUS == 0
+#define SNAPSHOT 1			// 1 => save snapshots
+#define SNAP_MODULUS 10		// take snapshots if k % SNAP_MODULUS == 0
 
-#define CUERR {                                                            \
-    cudaError_t err;                                                       \
-    if ((err = cudaGetLastError()) != cudaSuccess) {                       \
-        printf("CUDA error: %s : %s, line %d\n", cudaGetErrorString(err), __FILE__, __LINE__); \
-        exit(1);                                                           \
-    }                                                                      \
+#define CUERR {																					\
+cudaError_t err;																				\
+    if ((err = cudaGetLastError()) != cudaSuccess) {											\
+        printf("CUDA error: %s : %s, line %d\n", cudaGetErrorString(err), __FILE__, __LINE__);	\
+        exit(1);																				\
+    }																							\
 }
 
 #define PASS printf(" PASSED FILE: %s, LINE: %d\n", __FILE__, __LINE__);
@@ -22,7 +21,6 @@
 #include "cuda_runtime.h"
 #include "device_launch_parameters.h"
 #include "copy_gridsync.h"
-#include "copy_gridsync_intfriend.h"
 #include "iterate_gridsync_restructure_int_friend.h"
 #include "unifi.h"
 #include <stdio.h>
@@ -59,17 +57,14 @@ int main()
 
     // Add vectors in parallel.
     cudaError_t cudaStatus = iterate_prep(u, v, u_sol, size, res); CUERR;
-    PASS;
     // array_to_text(u, res);
 
     // cudaDeviceReset must be called before exiting in order for profiling and
     // tracing tools such as Nsight and Visual Profiler to show complete traces.
     cudaStatus = cudaDeviceReset(); CUERR;
-    PASS;
     delete[] u;
     delete[] u_sol;
     delete[] v;
-    PASS;
     return 0;
 }
 
@@ -80,13 +75,29 @@ cudaError_t iterate_prep(float* u, float* v, float* u_sol, unsigned int size, in
     float* dev_ub = 0;
     float* dev_v = 0;
     float* dev_2_u = 0;
-
+	float* dev_snap = 0;
+	void* kernelArgs[6];
+	float* uSnap = new float[ size * int( ITERATIONS / SNAP_MODULUS / 2 ) ];
     //measure at this iteration
     int iteration_limit_per_2 = ITERATIONS / 2;
 
     // cooperative kernel launch parameters
-    void* kernelArgs[] = { (void*)&dev_ua, (void*)&dev_ub, (void*)&dev_v, (void*)&res, (void*)&iteration_limit_per_2 };
-    int* ivar;
+	if ( SNAPSHOT ){
+		kernelArgs[0] = (void*)&(dev_ua);
+		kernelArgs[1] = (void*)&(dev_ub);
+		kernelArgs[2] = (void*)&(dev_v);
+		kernelArgs[3] = (void*)&res;
+		kernelArgs[4] = (void*)&iteration_limit_per_2;
+		kernelArgs[5] = (void*)&(dev_snap);
+	}
+	else{
+		kernelArgs[0] = (void*)&(dev_ua);
+		kernelArgs[1] = (void*)&(dev_ub);
+		kernelArgs[2] = (void*)&(dev_v);
+		kernelArgs[3] = (void*)&res;
+		kernelArgs[4] = (void*)&iteration_limit_per_2;
+	}
+
     dim3 dimBlock(32, 32, 1);
     dim3 dimGrid(8, 8, 1);
 
@@ -106,46 +117,49 @@ cudaError_t iterate_prep(float* u, float* v, float* u_sol, unsigned int size, in
     {
         cout << "gridsync restruct \n";
         // Allocate GPU buffers
-        cudaStatus = init(u, v, &dev_2_u, &dev_ua, &dev_ub, &dev_v, size, DEVICE_ID); CUERR;
-
+		if ( SNAPSHOT ){
+			init(u, v, &dev_2_u, &dev_ua, &dev_ub, &dev_v, size, DEVICE_ID, &dev_snap); CUERR;
+		}
+		else{
+			init(u, v, &dev_2_u, &dev_ua, &dev_ub, &dev_v, size, DEVICE_ID); CUERR;
+		}
         cudaDeviceSynchronize();
         // ---------- Launch a kernel on the GPU with one thread for each element. ----------
         begin = std::chrono::steady_clock::now();
 
-        cudaLaunchCooperativeKernel((void*)iterate_kernel_gsync_restruct_int_friend, dimGrid, dimBlock, kernelArgs);
-        cudaDeviceSynchronize();
+        if ( SNAPSHOT ){ cudaLaunchCooperativeKernel((void*)iterate_snap, dimGrid, dimBlock, kernelArgs); }
+		else{ cudaLaunchCooperativeKernel((void*)iterate, dimGrid, dimBlock, kernelArgs); }
+        cudaDeviceSynchronize(); CUERR;
 
         end = std::chrono::steady_clock::now();
         print_runtimes(begin, end);
 
         // Check for any errors launching the kernel
-        cudaStatus = cudaGetLastError(); CUERR;
+        cudaGetLastError(); CUERR;
 
         // cudaDeviceSynchronize waits for the kernel to finish, and returns
         // any errors encountered during the launch.
-        cudaStatus = cudaDeviceSynchronize(); CUERR;
+        cudaDeviceSynchronize(); CUERR;
 
         // Copy output vector from GPU buffer to host memory.
-        cudaStatus = cudaMemcpy(u, dev_ua, size * sizeof(int), cudaMemcpyDeviceToHost); CUERR;
+        cudaMemcpy(u, dev_ua, size * sizeof(float), cudaMemcpyDeviceToHost); CUERR;
 
-        cudaStatus = cudaDeviceSynchronize();
+		cudaMemcpy(uSnap, dev_snap, size * sizeof(float) * int( ITERATIONS / SNAP_MODULUS / 2 ), cudaMemcpyDeviceToHost); CUERR;
+
+        cudaDeviceSynchronize(); CUERR;
 
         array_to_text(u, res);
+
+		snap_to_text(uSnap, res);
 
         test(u, size);
     }
 
-    cudaFree(dev_ua);
-    cudaFree(dev_ub);
-    cudaFree(dev_v);
-    cudaFree(dev_2_u);
-
-Error:
-    cudaFree(dev_ua);
-    cudaFree(dev_ub);
-    cudaFree(dev_v);
-    cudaFree(dev_2_u);
-    //cudaFree(dev_u_sol);
+// Error:
+    cudaFree(dev_v); CUERR;
+    cudaFree(dev_2_u); CUERR;
+	cudaFree(dev_snap); CUERR;
+	delete[] uSnap;
 
     return cudaStatus;
 }

@@ -1,0 +1,114 @@
+import numpy as np
+import matplotlib.pyplot as plt
+from matplotlib.animation import FuncAnimation
+
+plt.ion()
+
+it = 5000 # iteration step number
+res = 256 # number of pixels
+size = res**2
+rho = 1 # density
+f = 20e3 # transducer frequency
+c = 1500 # speed of sound in water
+dx = (c/f) * 3 / 256 # spatial discretization length
+sigma = .01 # Courant number
+dt = sigma * dx / c # time discretization, with CFL criterion
+print('dt from CFL: ', dt)
+dt = min(dt, 1/20e4)
+print('dt: ',dt)
+snapshot = 1 # if 1 take snapshot
+snap_mod = 100 # take snapshot if k % snap_mod == 0
+d = 10e-6
+omega = 2 * 3.14159265359 * f
+
+ua = np.zeros([res + 2,res + 2])
+ub = np.zeros([res + 2,res + 2])
+va = np.zeros([res,res])
+vb = np.zeros([res,res])
+
+# Create figure
+fig, ax = plt.subplots(figsize=(9, 6))
+ax.invert_yaxis()
+ax.set_xlabel('')
+ax.set_ylabel('')
+
+for k in range(int(it/2)):
+    # iteration step
+    for i in range(res):
+        for j in range(res):
+            ub[i+1,j+1] = ua[i+1,j+1] + dt * va[i,j]
+
+            lap = 0
+            lap += -20 * ua[i+1,j+1]
+            lap +=   4 * ua[i+1,j+1+1]
+            lap +=   4 * ua[i+1,j+1-1]
+            lap +=   4 * ua[i+1+1,j+1]
+            lap +=   4 * ua[i+1-1,j+1]
+            lap +=   1 * ua[i+1-1,j+1-1]
+            lap +=   1 * ua[i+1+1,j+1-1]
+            lap +=   1 * ua[i+1+1,j+1+1]
+            lap +=   1 * ua[i+1-1,j+1+1]
+
+            vb[i,j] = va[i,j] + dt * c**2 / ( 6 * dx**2 ) * lap
+    # bc 
+    for j in range(res + 2):
+        if 64 < j and j < 192: 
+            # transducer
+            ub[res+1,j] = ub[res,j] + dt * rho * d * omega * np.sin( omega * dt * (2 * k) )
+        else:
+            # wall
+            ub[res+1,j] = ub[res,j]
+        # free
+        ub[0,j] = 0
+    for i in range(res):
+        # walls
+        ub[i,0] = ub[i,1]
+        ub[i,res+1] = ub[i,res]
+
+    # iteration step
+    for i in range(res):
+        for j in range(res):
+            ua[i+1,j+1] = ub[i+1,j+1] + dt * vb[i,j]
+
+            lap = 0
+            lap += -20 * ub[i+1,j+1]
+            lap +=   4 * ub[i+1,j+1+1]
+            lap +=   4 * ub[i+1,j+1-1]
+            lap +=   4 * ub[i+1+1,j+1]
+            lap +=   4 * ub[i+1-1,j+1]
+            lap +=   1 * ub[i+1-1,j+1-1]
+            lap +=   1 * ub[i+1+1,j+1-1]
+            lap +=   1 * ub[i+1+1,j+1+1]
+            lap +=   1 * ub[i+1-1,j+1+1]
+
+            va[i,j] = vb[i,j] + dt * c**2 / ( 6 * dx**2 ) * lap
+
+    # bc 
+    for j in range(res + 2):
+        if 64 < j and j < 192: 
+            # transducer
+            ua[res+1,j] = ua[res,j] + dt * rho * d * omega * np.sin( omega * dt * (2 * k) )
+        else:
+            # wall
+            ua[res+1,j] = ua[res,j]
+
+        # free
+        ua[0,j] = 0
+    for i in range(res):
+        # walls
+        ua[i,0] = ua[i,1]
+        ua[i,res+1] = ua[i,res]
+
+    if snapshot and k % snap_mod == 0:
+        heatmap = ax.imshow(
+            ua,
+            cmap='winter',
+            interpolation='none',
+            # vmin=vmin_value,
+            # vmax=vmax_value
+            )
+
+        ax.set_title(f"k = {k}, max = {np.max(ua)}")
+        
+        plt.draw()                # redraw
+        plt.pause(0.001)          # allow GUI to update

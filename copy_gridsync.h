@@ -116,6 +116,7 @@ void array_to_text(float* u_sol, int res)
 void snap_to_text(float* uSnap, int res)
 {
     const unsigned int s = res * res;
+	/*
     fstream newfile;
     newfile.open("u_snap.txt", ios::out);
     if (newfile.is_open())
@@ -130,4 +131,20 @@ void snap_to_text(float* uSnap, int res)
 
         newfile.close();
     }
+	*/
+	/*
+	ofstream newfile("u_snap.bin", ios::out | ios::binary);
+
+	for (int i = 0; i < s *	int( ITERATIONS / SNAP_MODULUS / 2 ); i++)
+	{
+		float val = (float)uSnap[i];
+		newfile.write(reinterpret_cast<char*>(&val), sizeof(float));
+	}
+	*/
+	FILE* file = fopen("u_snap.bin", "wb");
+
+    fwrite(uSnap, sizeof(float), res * res * int( ITERATIONS / SNAP_MODULUS / 2 ) , file);
+
+    fclose(file);
+
 };

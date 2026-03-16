@@ -4,8 +4,8 @@ import matplotlib.pyplot as plt
 res = 256
 
 dir = r"/mnt/c/Users/Gedei Janos Jonatan/Dokumentumok/LaTeX Projects/MSc-repo/3/SonoChem/GPU_code_PDE_solver_barkley/"
-s1 = r"u_sol_4_2_dt.txt"
 s1 = r"u_comp_test_5000.txt"
+s1 = r"u_sol_uni.txt"
 
 
 # Read data from files
@@ -17,11 +17,12 @@ u_sol = u_sol.reshape((res, res))
 
 # Create the heatmap
 
-vmin_value = -0.5
-vmax_value = 0.5
+# vmin_value = -0.5
+# vmax_value = 0.5
 
 plt.figure(figsize=(9, 6))
-heatmap = plt.imshow(u_sol, cmap='winter', interpolation='nearest', vmin=vmin_value, vmax=vmax_value)
+heatmap = plt.imshow(u_sol, cmap='winter', interpolation='nearest')
+# heatmap = plt.imshow(u_sol, cmap='winter', interpolation='nearest', vmin=vmin_value, vmax=vmax_value)
 plt.gca().invert_yaxis()
 #plt.colorbar()
 plt.axis('on')  # Turn off the grid

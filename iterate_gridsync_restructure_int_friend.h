@@ -1,14 +1,22 @@
 #include "cuda_runtime.h"
 
-__const__ float repsilon = 1 / 0.02;	// Inkább: repsilon = 1.0/0.02
-__const__ float ra = 1 / 0.64;		// Inkább: ra = 1.0/0.64
-__const__ float b = 0.05;
-__const__ float dt = 0.0076893502846360206604003906250000000000;
-__const__ float ccc = 0.0335952863097190856933593750000000000000;
+__const__ float dx = 0.075 * 3 / 256; //  m divided by 256
+__const__ float c = 1500;   // c ~= 1500 m/s, then take its square
+__const__ float c2 = c * c; 
+__const__ float dt = 5.859374999999999e-9 / 4; // CFL criterion with Courant number C_CFL = small
+__const__ float K = ( dt * c2 ) / ( 6 * dx * dx ); // ( dt * c^2 ) / ( 6 * dx^2 ) this comes from
+					  // the E.E. time discretization
+					  // and from the 9 point stencil of the Laplace operator
+__const__ float rho = 1e3;
+__const__ float d = 10e-6;
+__const__ float omega = 2 * 3.14159265359 * 20e3;
+__const__ float dt_rho_d_omega2 = dt * rho * d * omega * omega;
+__const__ float omega_dt = omega * dt;
+
 
 static __device__ __forceinline__ void copy_r_to_g_and_no_flux(float* g_ub, float r_un, int res, int i, int j, int ThreadOffset);
 static __device__ __forceinline__ void laplace_gi(float* g_ua, float* r_un, int res, int i, int j, int ThreadOffset, int within_simspace_inner, float* lap_p, float* lap_n, float* lap_s);
-static __device__ __forceinline__ void copy_r_to_g_and_no_flux_int_friend(float* g_ub, float r_un, int res, int i, int j, int ThreadOffset, bool j_eq_1, bool j_eq_res_m_2, bool i_eq_1, bool i_eq_res_m_2, int threadoffset_p_one, int threadoffset_m_one, int threadoffset_p_res, int threadoffset_m_res, int within_simspace_inner);
+static __device__ __forceinline__ void copy_r_to_g_and_no_flux_int_friend(float* g_ub, float r_un, int res, int i, int j, int ThreadOffset, bool j_eq_1, bool j_eq_res_m_2, bool i_eq_1, bool i_eq_res_m_2, int threadoffset_p_one, int threadoffset_m_one, int threadoffset_p_res, int threadoffset_m_res, int within_simspace_inner, int k);
 
 
 __global__ void iterate_snap(float* g_ua, float* g_ub, float* g_v, int res, int iteration_limit_per_2, float* g_snap);
@@ -17,52 +25,33 @@ __global__ void iterate(float* g_ua, float* g_ub, float* g_v, int res, int itera
 
 
 // deal with laplace
-static __device__ __forceinline__ void laplace_gi(float* g_ua, float* r_un, int res, int i, int j, int ThreadOffset, int within_simspace_inner, float* lap_p, float* lap_n, float* lap_s)
+static __device__ __forceinline__ void laplace_gi(float* g_ua, float* r_vn, int res, int i, int j, int ThreadOffset, int within_simspace_inner, float* lap_p, float* lap_n, float* lap_s)
 {
     if (within_simspace_inner)       // INTO REG: within_simspace_inner
     {
         float r_L = 0;
-        // Nem nagy a stencil, kilehet bontani teljesen:
-        // float* g_ua_act = g_ua + ThreadOffset; // Létrehozunk egy új pointert ami az aktuális thread megfelelõ elemére mutat, 1 INT ADD     // INTO REG: lap_p
+		// Patra-Karttunen (mabey try Oono-Puri)
         r_L += -20 * lap_p[0];
         r_L += 4 * lap_p[+1];
         r_L += 4 * lap_p[-1];
 
-        // g_ua_act = g_ua_act - res; // Eltoljuk a pointert 1 sorral feljebb, 1 INT ADD         // INTO REG: lap_s
         r_L += 4 * lap_s[0];
         r_L += 1 * lap_s[+1];
         r_L += 1 * lap_s[-1];
 
-        // g_ua_act = g_ua_act + 2 * res; // Eltoljuk a pointert 2 sorral lejjebb, 1 INT FMA       // INTO REG: lap_n
         r_L += 4 * lap_n[0];
         r_L += 1 * lap_n[+1];
         r_L += 1 * lap_n[-1];
 
-        *r_un += ccc * r_L;
+        *r_vn += K * r_L;
     }
 }
 
 // iterate one timestep without laplace
-static __device__ __forceinline__ void iterate_without_laplace(const float r_ua, const float r_v, float* r_un, float* r_vn)
+static __device__ __forceinline__ void iterate_without_laplace(const float r_ua, const float r_va, float* r_ub, float* r_vb)
 {
-    float u_th;
-
-    // ----- constants -----
-    // Ezeket vagy a constant vagy a shared memóriába raknám.
-    // Constant memóriába úgy is be tudod "rakni" ha beégeted a számot ahol használod.
-    // Ha változtatni akarod, akkor lehet #define -t is használni (a global függvényen kívül természetesen).
-    // DE NEM KRITIKUS
-    /*
-    const float epsilon = 0.02;	// Inkább: repsilon = 1.0/0.02
-    const float a = 0.64;		// Inkább: ra = 1.0/0.64
-    */
-
-
-    // Az osztásokat kicserélnémreciprokkal való szorzásra! Lásd a kommenteket fent.
-    // Az osztások nagyon lassúak, kb 50-70 szer lassabb mint egy szorzás vagy összeadás/kivonás
-    u_th = (r_v + b) * ra; // ( r_v + b ) * ra // ez a sor összevonható lenne a +2. sorral a +2. sorban
-    *r_vn = r_v + dt * (r_ua - r_v);
-    *r_un = r_ua + dt * repsilon * r_ua * (1 - r_ua) * (r_ua - u_th); // ... dt * repsilon * r_ua ...
+    *r_vb = r_va; // laplace part added in an other function
+    *r_ub = r_ua + dt * r_va;
     
 }
 
@@ -119,23 +108,23 @@ __global__ void iterate_snap(float* g_ua, float* g_ub, float* g_v, int res, int 
         {
             whole_grid.sync();
             // ----- Laplace 1 -----
-            laplace_gi(g_ua, &r_ub, res, i, j, ThreadOffset, within_simspace_inner, lap_pa, lap_na, lap_sa);
+            laplace_gi(g_ua, &r_vb, res, i, j, ThreadOffset, within_simspace_inner, lap_pa, lap_na, lap_sa);
 
             // ----- Iteration step 2 
             iterate_without_laplace(r_ub, r_vb, &r_ua, &r_va);
 
             // ----- "Unload" Data And No Flux Bc 1 -----
-            copy_r_to_g_and_no_flux_int_friend(g_ub, r_ub, res, i, j, ThreadOffset, j_eq_1, j_eq_res_m_2, i_eq_1, i_eq_res_m_2, threadoffset_p_one, threadoffset_m_one, threadoffset_p_res, threadoffset_m_res, within_simspace_inner);
+            copy_r_to_g_and_no_flux_int_friend(g_ub, r_ub, res, i, j, ThreadOffset, j_eq_1, j_eq_res_m_2, i_eq_1, i_eq_res_m_2, threadoffset_p_one, threadoffset_m_one, threadoffset_p_res, threadoffset_m_res, within_simspace_inner, k);
             whole_grid.sync();
             
             // ----- Laplace 2 -----
-            laplace_gi(g_ub, &r_ua, res, i, j, ThreadOffset, within_simspace_inner, lap_pb, lap_nb, lap_sb);
+            laplace_gi(g_ub, &r_va, res, i, j, ThreadOffset, within_simspace_inner, lap_pb, lap_nb, lap_sb);
 
             // ----- Iteration step 3 -----
             iterate_without_laplace(r_ua, r_va, &r_ub, &r_vb);
 
             // ----- "Unload" Data And No Flux Bc 2 -----
-            copy_r_to_g_and_no_flux_int_friend(g_ua, r_ua, res, i, j, ThreadOffset, j_eq_1, j_eq_res_m_2, i_eq_1, i_eq_res_m_2, threadoffset_p_one, threadoffset_m_one, threadoffset_p_res, threadoffset_m_res, within_simspace_inner);
+            copy_r_to_g_and_no_flux_int_friend(g_ua, r_ua, res, i, j, ThreadOffset, j_eq_1, j_eq_res_m_2, i_eq_1, i_eq_res_m_2, threadoffset_p_one, threadoffset_m_one, threadoffset_p_res, threadoffset_m_res, within_simspace_inner, k);
 
 			// ----- save snapshot to global memory -----
 			if ( k % SNAP_MODULUS == 0 ){ g_snap[ThreadOffset + ( countSnap++ ) * size] = r_ua; }
@@ -195,29 +184,29 @@ __global__ void iterate(float* g_ua, float* g_ub, float* g_v, int res, int itera
         {
             whole_grid.sync();
             // ----- Laplace 1 -----
-            laplace_gi(g_ua, &r_ub, res, i, j, ThreadOffset, within_simspace_inner, lap_pa, lap_na, lap_sa);
+            laplace_gi(g_ua, &r_vb, res, i, j, ThreadOffset, within_simspace_inner, lap_pa, lap_na, lap_sa);
 
             // ----- Iteration step 2 
             iterate_without_laplace(r_ub, r_vb, &r_ua, &r_va);
 
             // ----- "Unload" Data And No Flux Bc 1 -----
-            copy_r_to_g_and_no_flux_int_friend(g_ub, r_ub, res, i, j, ThreadOffset, j_eq_1, j_eq_res_m_2, i_eq_1, i_eq_res_m_2, threadoffset_p_one, threadoffset_m_one, threadoffset_p_res, threadoffset_m_res, within_simspace_inner);
+            copy_r_to_g_and_no_flux_int_friend(g_ub, r_ub, res, i, j, ThreadOffset, j_eq_1, j_eq_res_m_2, i_eq_1, i_eq_res_m_2, threadoffset_p_one, threadoffset_m_one, threadoffset_p_res, threadoffset_m_res, within_simspace_inner, k);
             whole_grid.sync();
             
             // ----- Laplace 2 -----
-            laplace_gi(g_ub, &r_ua, res, i, j, ThreadOffset, within_simspace_inner, lap_pb, lap_nb, lap_sb);
+            laplace_gi(g_ub, &r_va, res, i, j, ThreadOffset, within_simspace_inner, lap_pb, lap_nb, lap_sb);
 
             // ----- Iteration step 3 -----
             iterate_without_laplace(r_ua, r_va, &r_ub, &r_vb);
 
             // ----- "Unload" Data And No Flux Bc 2 -----
-            copy_r_to_g_and_no_flux_int_friend(g_ua, r_ua, res, i, j, ThreadOffset, j_eq_1, j_eq_res_m_2, i_eq_1, i_eq_res_m_2, threadoffset_p_one, threadoffset_m_one, threadoffset_p_res, threadoffset_m_res, within_simspace_inner);
+            copy_r_to_g_and_no_flux_int_friend(g_ua, r_ua, res, i, j, ThreadOffset, j_eq_1, j_eq_res_m_2, i_eq_1, i_eq_res_m_2, threadoffset_p_one, threadoffset_m_one, threadoffset_p_res, threadoffset_m_res, within_simspace_inner, k);
         }
     }
 }
 
 // no flux boundary condition INT FRIEND V2, testing register usage
-static __device__ __forceinline__ void copy_r_to_g_and_no_flux_int_friend(float* g_ub, float r_un, int res, int i, int j, int ThreadOffset, bool j_eq_1, bool j_eq_res_m_2, bool i_eq_1, bool i_eq_res_m_2, int threadoffset_p_one, int threadoffset_m_one , int threadoffset_p_res , int threadoffset_m_res, int within_simspace_inner)
+static __device__ __forceinline__ void copy_r_to_g_and_no_flux_int_friend(float* g_ub, float r_un, int res, int i, int j, int ThreadOffset, bool j_eq_1, bool j_eq_res_m_2, bool i_eq_1, bool i_eq_res_m_2, int threadoffset_p_one, int threadoffset_m_one , int threadoffset_p_res , int threadoffset_m_res, int within_simspace_inner, int k)
 {
     // ----- Copy To GlobalMem -----
     if (within_simspace_inner)
@@ -226,13 +215,16 @@ static __device__ __forceinline__ void copy_r_to_g_and_no_flux_int_friend(float*
     }
 
     // ----- No Flux BC -----
-    //s
+    //s wall
     if (j_eq_1) { g_ub[threadoffset_m_res] = r_un; }
-    //w
-    if (i_eq_1) { g_ub[threadoffset_m_one] = r_un; }
-    //e
-    if (i_eq_res_m_2) { g_ub[threadoffset_p_one] = r_un; }
-    //n
+    //w outlet
+    if (i_eq_1) { g_ub[threadoffset_m_one] = 0; }
+    //e transducer
+    if (i_eq_res_m_2) {
+		if ( j > 64 && j < 192 ) { g_ub[threadoffset_p_one] = r_un + dt_rho_d_omega2 * sinf( omega_dt * k ); }
+		else { g_ub[threadoffset_p_one] = r_un; }
+	}
+    //n wall
     if (j_eq_res_m_2) { g_ub[threadoffset_p_res] = r_un; }
     //sw
     if (i_eq_1 && j_eq_1) { g_ub[threadoffset_m_res - 1] = r_un; }

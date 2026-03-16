@@ -30,11 +30,11 @@ cudaError_t init(float* u, float* v, float** dev_2_u, float** dev_ua, float** de
 
     cudaStatus = cudaMalloc((void**)dev_v, size * sizeof(float)); CUERR;
 
-    cudaStatus = cudaMemcpy(*dev_ua, u, size * sizeof(float), cudaMemcpyHostToDevice); CUERR;
+    // cudaStatus = cudaMemcpy(*dev_ua, u, size * sizeof(float), cudaMemcpyHostToDevice); CUERR;
 
-    cudaStatus = cudaMemcpy(*dev_ub, u, size * sizeof(float), cudaMemcpyHostToDevice); CUERR;
+    // cudaStatus = cudaMemcpy(*dev_ub, u, size * sizeof(float), cudaMemcpyHostToDevice); CUERR;
 
-    cudaStatus = cudaMemcpy(*dev_v, v, size * sizeof(float), cudaMemcpyHostToDevice); CUERR;
+    // cudaStatus = cudaMemcpy(*dev_v, v, size * sizeof(float), cudaMemcpyHostToDevice); CUERR;
 	// allocate mem for snapshots
     cudaStatus = cudaMalloc((void**)dev_snap, size * sizeof(float) * ( int( ITERATIONS / SNAP_MODULUS / 2 ) ) ); CUERR;
 
@@ -65,11 +65,11 @@ cudaError_t init(float* u, float* v, float** dev_2_u, float** dev_ua, float** de
 
     cudaStatus = cudaMalloc((void**)dev_v, size * sizeof(float)); CUERR;
 
-    cudaStatus = cudaMemcpy(*dev_ua, u, size * sizeof(float), cudaMemcpyHostToDevice); CUERR;
+    // cudaStatus = cudaMemcpy(*dev_ua, u, size * sizeof(float), cudaMemcpyHostToDevice); CUERR;
 
-    cudaStatus = cudaMemcpy(*dev_ub, u, size * sizeof(float), cudaMemcpyHostToDevice); CUERR;
+    // cudaStatus = cudaMemcpy(*dev_ub, u, size * sizeof(float), cudaMemcpyHostToDevice); CUERR;
 
-    cudaStatus = cudaMemcpy(*dev_v, v, size * sizeof(float), cudaMemcpyHostToDevice); CUERR;
+    // cudaStatus = cudaMemcpy(*dev_v, v, size * sizeof(float), cudaMemcpyHostToDevice); CUERR;
 
 	cudaStatus = cudaGetLastError();
     return cudaSuccess;  // Successful allocation

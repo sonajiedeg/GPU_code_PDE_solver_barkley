@@ -20,9 +20,9 @@ cudaError_t err;																				\
 
 #include "cuda_runtime.h"
 #include "device_launch_parameters.h"
-#include "copy_gridsync.h"
-#include "iterate_gridsync_restructure_int_friend.h"
-#include "unifi.h"
+#include "copy_gridsync.cpp"
+#include "iterate_gridsync_restructure_int_friend.cu"
+#include "unifi.cu"
 #include <stdio.h>
 #include <iostream>
 #include <fstream>

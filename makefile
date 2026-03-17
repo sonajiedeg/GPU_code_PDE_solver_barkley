@@ -18,3 +18,6 @@ nTest.exe:
 	nvcc -o	nTest.exe nTest.cu $(CMPL_OPT)
 	# nvcc --default-stream per-thread ./nTest.cu -o nTest.exe
 	# nvcc --default-stream per-thread ./pthread_test.cu -o pthreads_per_thread
+
+1d.exe:
+	nvcc -o 1d.exe 1d.cu $(CMPL_OPT)

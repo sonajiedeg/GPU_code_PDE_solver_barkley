@@ -21,7 +21,7 @@ cudaError_t err;																				\
 #include "cuda_runtime.h"
 #include "device_launch_parameters.h"
 #include "iterate1d.cu"
-#include "unifi.h"
+#include "unifi.cu"
 #include <stdio.h>
 #include <iostream>
 #include <fstream>
@@ -67,13 +67,15 @@ int main()
 // Helper function for using CUDA to add vectors in parallel.
 cudaError_t iterate_prep(float* u, float* v, float* u_sol, int res)
 {
-    float* dev_ua = 0;
-    float* dev_ub = 0;
-    float* dev_v = 0;
-    float* dev_2_u = 0;
-	float* dev_snap = 0;
-	void* kernelArgs[6];
-	float* uSnap = new float[ size * int( ITERATIONS / SNAP_MODULUS / 2 ) ];
+	// ptr.s for gpu
+    float* dev_ua = 0; // part a for iteration
+    float* dev_ub = 0; // part b for iteration
+    float* dev_v = 0;  // v
+    float* dev_2_u = 0;// allocate here then split into a and b parts
+	float* dev_snap = 0; // save snapshot here
+	// data for cpu
+	void* kernelArgs[6]; // with this pass kernel arguments to cudaLaunchCoopKernel()
+	float* uSnap = new float[ res * int( ITERATIONS / SNAP_MODULUS / 2 ) ]; // save snapshots here
     //measure at this iteration
     int iteration_limit_per_2 = ITERATIONS / 2;
 
@@ -93,9 +95,9 @@ cudaError_t iterate_prep(float* u, float* v, float* u_sol, int res)
 		kernelArgs[3] = (void*)&res;
 		kernelArgs[4] = (void*)&iteration_limit_per_2;
 	}
-
-    dim3 dimBlock(32, 32, 1);
-    dim3 dimGrid(8, 8, 1);
+	// now only 1 block, with 1 simulation
+    dim3 dimBlock(1024, 1, 1);
+    dim3 dimGrid(1, 1, 1);
 
     //measure elapsed time
     std::chrono::steady_clock::time_point begin;
@@ -104,20 +106,21 @@ cudaError_t iterate_prep(float* u, float* v, float* u_sol, int res)
 	cudaError_t cudaStatus;
 
     // Choose which GPU to run on, change this on a multi-GPU system.
-    cudaStatus = cudaSetDevice(DEVICE_ID); CUERR;
+    cudaSetDevice(DEVICE_ID); CUERR;
 
     //-----------------------------------------------------------------------------------------------------------
-    //---------------------------------------- GRIDSYNC RESTRUCT INT FRIEND KERNEL -------------------------------
+    //---------------------------------------- TODO: name this section ------------------------------------------
     //-----------------------------------------------------------------------------------------------------------
     if (run_gsync_restruct_int_friend)
     {
-        cout << "gridsync restruct \n";
+        cout << "1d 1 block linear acoustic wave \n";
         // Allocate GPU buffers
 		if ( SNAPSHOT ){
-			init(u, v, &dev_2_u, &dev_ua, &dev_ub, &dev_v, size, DEVICE_ID, &dev_snap); CUERR;
+			init(&dev_2_u, &dev_ua, &dev_ub, &dev_v, res, &dev_snap); CUERR; // 0 call overload for 1d
 		}
 		else{
-			init(u, v, &dev_2_u, &dev_ua, &dev_ub, &dev_v, size, DEVICE_ID); CUERR;
+			float** dev_2_u, float** dev_ua, float** dev_ub, float** dev_v, unsigned int res);
+			init(&dev_2_u, &dev_ua, &dev_ub, &dev_v, res); CUERR; // 0 call overload for 1d
 		}
         cudaDeviceSynchronize();
         // ---------- Launch a kernel on the GPU with one thread for each element. ----------
@@ -157,6 +160,7 @@ cudaError_t iterate_prep(float* u, float* v, float* u_sol, int res)
 	cudaFree(dev_snap); CUERR;
 	delete[] uSnap;
 
+	cudaStatus = cudaGetLastError();
     return cudaStatus;
 }
 

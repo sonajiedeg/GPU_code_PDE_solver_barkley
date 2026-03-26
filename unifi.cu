@@ -134,7 +134,7 @@ cudaError_t init(float** dev_2_u, float** dev_ua, float** dev_ub, float** dev_v,
     cudaError_t cudaStatus;
 
     // Allocate GPU buffers
-    cudaMalloc((void**)dev_2_u, 3 * res * sizeof(float)); CUERR;
+    cudaMalloc((void**)dev_2_u, 3 * ( res+2 ) * sizeof(float)); CUERR;
 
     // splitting the allcated memory for u
     *dev_ua = *dev_2_u;
@@ -153,7 +153,7 @@ cudaError_t init(float** dev_2_u, float** dev_ua, float** dev_ub, float** dev_v,
     cudaError_t cudaStatus;
 
     // Allocate GPU buffers
-    cudaMalloc((void**)dev_2_u, 3 * res * sizeof(float)); CUERR;
+    cudaMalloc((void**)dev_2_u, 3 * ( res+2 )  * sizeof(float)); CUERR;
 
     // splitting the allcated memory for u
     *dev_ua = *dev_2_u;

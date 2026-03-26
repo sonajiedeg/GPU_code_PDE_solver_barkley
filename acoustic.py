@@ -4,7 +4,7 @@ from matplotlib.animation import FuncAnimation
 
 plt.ion()
 
-it = 5000 # iteration step number
+it = 500 # iteration step number
 res = 256 # number of pixels
 size = res**2
 rho = 1 # density
@@ -17,7 +17,7 @@ print('dt from CFL: ', dt)
 dt = min(dt, 1/20e4)
 print('dt: ',dt)
 snapshot = 1 # if 1 take snapshot
-snap_mod = 100 # take snapshot if k % snap_mod == 0
+snap_mod = 4 # take snapshot if k % snap_mod == 0
 d = 10e-6
 omega = 2 * 3.14159265359 * f
 

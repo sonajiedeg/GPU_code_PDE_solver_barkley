@@ -59,7 +59,7 @@ ua[res+1] = ua[res] + dx * rho * d * omega * omega * np.sin( omega * dt * (2 * k
 ua[0] = 0
 # haha, all is still 0 after the first step :)
 
-for k in range( 1, int(it/2) ):
+for k in range( 1, int(it), 2 ):
     # save (k-2)th field variable, in gpu this only happend in the registers
     uc = ub.copy()
     # iteration step
@@ -70,9 +70,9 @@ for k in range( 1, int(it/2) ):
     ub[res+1] = ub[res] + dx * rho * d * omega**2 * np.sin( omega * dt * ( k ) ) - dx**2 / 2 / c**2 / dt**2 * ( ub[res] - 2 * ua[res] + uc[res] )
     # other end: wall or symmetry or VOID
     # Dirichlet = reflect with inverse phase
-    ub[0] = 0
+    # ub[-1] = 0
     # Neumann = relfelct with same phase
-    # ub[0] = ub[1]
+    ub[0] = ub[1]  + dx**2 / 2 / c**2 / dt**2 * ( ub[1] - 2 * ua[1] + uc[1] )
     # Sommerfeld = absorbtion all ( dp / dt + c dp / dx = 0 )
     # Impedance = absorbe some ( dp / dt + Z*c dp / dx = 0 )
     # ub[0] = 1 / ( 1/dt - c/dx ) * ( ua[0] / dt - c * ub[1] / dx )
@@ -87,9 +87,9 @@ for k in range( 1, int(it/2) ):
     ua[res+1] = ua[res] + dx * rho * d * omega**2 * np.sin( omega * dt * ( k + 1 ) ) - dx**2 / 2 / c**2 / dt**2 * ( ua[res] - 2 * ub[res] + uc[res] )
     # other end: wall or symmetry or VOID
     # Dirichlet = reflect with inverse phase
-    ua[0] = 0
+    # ua[0] = 0
     # Neumann = relfelct with same phase
-    # ua[0] = ua[1];
+    ua[0] = ua[1]  + dx**2 / 2 / c**2 / dt**2 * ( ua[1] - 2 * uc[1] + uc[1] )
     # Sommerfeld = absorbtion all ( dp / dt + c dp / dx = 0 )
     # ua[0] = 1 / ( 1/dt - c/dx ) * ( ub[0] / dt - c * ua[1] / dx )
     # Impedance = absorbe some ( dp / dt + Z*c dp / dx = 0 )

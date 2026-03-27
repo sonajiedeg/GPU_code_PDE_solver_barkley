@@ -3,26 +3,29 @@ import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
 
 plt.ion()
-
-it = 500 # iteration step number
+# ----- material and bc parameters -----
+rho = 1e3 # density
+c = 1500 # speed of sound in water
+f = 20e3 # transducer frequency
+d = 10e-6 # transducer oscillation amplitude in [m]
+omega = 2 * 3.14159265359 * f
+# ----- simulation parameters -----
+it = 50000 # iteration step number
 res = 256 # number of pixels
 size = res**2
-rho = 1 # density
-f = 20e3 # transducer frequency
-c = 1500 # speed of sound in water
 dx = (c/f) * 3 / 256 # spatial discretization length
-sigma = .01 # Courant number
+sigma = .9 # Courant number
 dt = sigma * dx / c # time discretization, with CFL criterion
 print('dt from CFL: ', dt)
-dt = min(dt, 1/20e4)
-print('dt: ',dt)
+# TODO: examine effects of transducer frequency on max dt
+# dt = min(dt, 1/20e4)
+# print('dt: ',dt)
 snapshot = 1 # if 1 take snapshot
-snap_mod = 4 # take snapshot if k % snap_mod == 0
-d = 10e-6
-omega = 2 * 3.14159265359 * f
+snap_mod = 11 # take snapshot if k % snap_mod == 0
 
 ua = np.zeros([res + 2,res + 2])
 ub = np.zeros([res + 2,res + 2])
+uc = np.zeros([res + 2,res + 2])
 va = np.zeros([res,res])
 vb = np.zeros([res,res])
 
@@ -32,72 +35,113 @@ ax.invert_yaxis()
 ax.set_xlabel('')
 ax.set_ylabel('')
 
-for k in range(int(it/2)):
+# ----------1st step----------
+k = 0
+for i in range(res):
+    for j in range(res):
+        ua[i+1,j+1] = ub[i+1,j+1] + dt * vb[i,j]
+
+        lap = 0
+        lap += -20 * ub[i+1,j+1]
+        lap +=   4 * ub[i+1,j+1+1]
+        lap +=   4 * ub[i+1,j+1-1]
+        lap +=   4 * ub[i+1+1,j+1]
+        lap +=   4 * ub[i+1-1,j+1]
+        lap +=   1 * ub[i+1-1,j+1-1]
+        lap +=   1 * ub[i+1+1,j+1-1]
+        lap +=   1 * ub[i+1+1,j+1+1]
+        lap +=   1 * ub[i+1-1,j+1+1]
+
+        va[i,j] = vb[i,j] + dt * c**2 / ( 6 * dx**2 ) * lap
+
+# bc 
+for j in range(res + 2):
+    if 64 < j and j < 192: 
+        # transducer
+        ua[res+1,j] = ua[res,j] + dt * rho * d * omega * np.sin( omega * dt * (k) )
+    else:
+        # wall
+        ua[res+1,j] = ua[res,j]
+
+    # free
+    ua[0,j] = 0
+for i in range(res):
+    # walls
+    ua[i,0] = ua[i,1]
+    ua[i,res+1] = ua[i,res]
+
+
+for k in range(1, int(it), 2):
+    # save prev field var
+    uc = ub.copy()
     # iteration step
     for i in range(res):
         for j in range(res):
-            ub[i+1,j+1] = ua[i+1,j+1] + dt * va[i,j]
-
+            ub[i+1,j+1] = 2 * ua[i+1,j+1] - uc[i+1,j+1] 
             lap = 0
-            lap += -20 * ua[i+1,j+1]
-            lap +=   4 * ua[i+1,j+1+1]
-            lap +=   4 * ua[i+1,j+1-1]
-            lap +=   4 * ua[i+1+1,j+1]
-            lap +=   4 * ua[i+1-1,j+1]
-            lap +=   1 * ua[i+1-1,j+1-1]
-            lap +=   1 * ua[i+1+1,j+1-1]
-            lap +=   1 * ua[i+1+1,j+1+1]
-            lap +=   1 * ua[i+1-1,j+1+1]
-
-            vb[i,j] = va[i,j] + dt * c**2 / ( 6 * dx**2 ) * lap
+            lap += -4* ua[i+1,j+1]
+            lap +=   1 * ua[i+1,j+1+1]
+            lap +=   1 * ua[i+1,j+1-1]
+            lap +=   1 * ua[i+1+1,j+1]
+            lap +=   1 * ua[i+1-1,j+1]
+            # lap +=   1 * ua[i+1-1,j+1-1]
+            # lap +=   1 * ua[i+1+1,j+1-1]
+            # lap +=   1 * ua[i+1+1,j+1+1]
+            # lap +=   1 * ua[i+1-1,j+1+1]
+            ub[i+1,j+1] += dt**2 * c**2 / dx**2 * lap
     # bc 
     for j in range(res + 2):
-        if 64 < j and j < 192: 
+        # if 64 < j and j < 192: 
+        if 0 <= j >= 256:
             # transducer
-            ub[res+1,j] = ub[res,j] + dt * rho * d * omega * np.sin( omega * dt * (2 * k) )
+            ub[res+1,j] = ub[res,j] + dx * rho * d * omega**2 * np.sin( omega * dt * ( k ) ) - dx**2 / 2 / c**2 / dt**2 * ( ub[res,j] - 2 * ua[res,j] + uc[res,j] )
+            # ub[res+1,j] = ub[res,j] + dt * rho * d * omega * np.sin( omega * dt * (k) )
         else:
             # wall
-            ub[res+1,j] = ub[res,j]
+            ub[res+1,j] = ub[res,j] - dx**2 / 2 / c**2 / dt**2 * ( ub[res,j] - 2 * ua[res,j] + uc[res,j] )
         # free
         ub[0,j] = 0
     for i in range(res):
         # walls
-        ub[i,0] = ub[i,1]
-        ub[i,res+1] = ub[i,res]
+        ub[i,0] = ub[i,1]  + dx**2 / 2 / c**2 / dt**2 * ( ub[i,1] - 2 * ua[i,1] + uc[i,1] )
+        # ub[i,res+1] = ub[i,res]
+        ub[i,res+1] = ub[i,res] - dx**2 / 2 / c**2 / dt**2 * ( ub[i,res] - 2 * ua[i,res] + uc[i,res] )
+        ub[i,res+1] = ub[i,res] - dx**2 / 2 / c**2 / dt**2 * ( ub[i,res] - 2 * ua[i,res] + uc[i,res] )
 
+    # save prev field var
+    uc = ua.copy()
     # iteration step
     for i in range(res):
         for j in range(res):
-            ua[i+1,j+1] = ub[i+1,j+1] + dt * vb[i,j]
-
+            ua[i+1,j+1] = 2 * ub[i+1,j+1] - uc[i+1,j+1] 
             lap = 0
-            lap += -20 * ub[i+1,j+1]
-            lap +=   4 * ub[i+1,j+1+1]
-            lap +=   4 * ub[i+1,j+1-1]
-            lap +=   4 * ub[i+1+1,j+1]
-            lap +=   4 * ub[i+1-1,j+1]
-            lap +=   1 * ub[i+1-1,j+1-1]
-            lap +=   1 * ub[i+1+1,j+1-1]
-            lap +=   1 * ub[i+1+1,j+1+1]
-            lap +=   1 * ub[i+1-1,j+1+1]
-
-            va[i,j] = vb[i,j] + dt * c**2 / ( 6 * dx**2 ) * lap
-
+            lap += -4* ub[i+1,j+1]
+            lap +=   1 * ub[i+1,j+1+1]
+            lap +=   1 * ub[i+1,j+1-1]
+            lap +=   1 * ub[i+1+1,j+1]
+            lap +=   1 * ub[i+1-1,j+1]
+            # lap +=   1 * ub[i+1-1,j+1-1]
+            # lap +=   1 * ub[i+1+1,j+1-1]
+            # lap +=   1 * ub[i+1+1,j+1+1]
+            # lap +=   1 * ub[i+1-1,j+1+1]
+            ua[i+1,j+1] += dt**2 * c**2 / dx**2 * lap
     # bc 
     for j in range(res + 2):
-        if 64 < j and j < 192: 
+        # if 64 < j and j < 192: 
+        if 0 <= j >= 256:
             # transducer
-            ua[res+1,j] = ua[res,j] + dt * rho * d * omega * np.sin( omega * dt * (2 * k) )
+            ua[res+1,j] = ua[res,j] + dx * rho * d * omega**2 * np.sin( omega * dt * ( k ) ) - dx**2 / 2 / c**2 / dt**2 * ( ua[res,j] - 2 * ub[res,j] + uc[res,j] )
+            # ua[res+1,j] = ua[res,j] + dt * rho * d * omega * np.sin( omega * dt * (k) )
         else:
             # wall
-            ua[res+1,j] = ua[res,j]
-
+            ua[res+1,j] = ua[res,j] - dx**2 / 2 / c**2 / dt**2 * ( ua[res,j] - 2 * ub[res,j] + uc[res,j] )
         # free
         ua[0,j] = 0
     for i in range(res):
         # walls
-        ua[i,0] = ua[i,1]
-        ua[i,res+1] = ua[i,res]
+        ua[i,0] = ua[i,1]  + dx**2 / 2 / c**2 / dt**2 * ( ua[i,1] - 2 * ub[i,1] + uc[i,1] )
+        # ua[i,res+1] = ua[i,res]
+        ua[i,res+1] = ua[i,res] - dx**2 / 2 / c**2 / dt**2 * ( ua[i,res] - 2 * ub[i,res] + uc[i,res] )
 
     if snapshot and k % snap_mod == 0:
         heatmap = ax.imshow(

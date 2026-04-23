@@ -25,6 +25,25 @@ e2c = sp.solve(pdeDE,e2)[0].subs( dt**2*c**2/dx**2,s )
 e2ct = e2c.rewrite(sp.exp).simplify().trigsimp()
 # e2c = sp.solve(pdeDE,e2).subs( dt**2*c**2/dx**2,s )
 result = [a.trigsimp() for a in e2c.rewrite(sp.cos).expand().as_real_imag()]
+result = result[0] # applicable if the im part is 0
+# charachteristic polinomial
+# the following steps are highly manual
+xi,p = sp.symbols('xi,p')
+char_pol = sp.Eq( sp.collect(e2 - result, e1), 0 ).subs( {e2:xi**2,e1:xi,e0:1,2*s*sp.cos(k*dx)-2*s:2*p} ) 
+
+# j char. roots
+roots = sp.solve( char_pol, xi )
+ineq1 = sp.solve_univariate_inequality(sp.Abs(roots[0]) <= 1, p)
+ineq2 = sp.solve_univariate_inequality(sp.Abs(roots[1]) <= 1, p)
+
+# region = ineq1.intersect(ineq2)
+region = ineq1.as_set().intersect(ineq2.as_set())
+p_min = list(region.boundary)[0]
+ineq3 = sp.solve_univariate_inequality(p_min<=((p).subs(p,s*(sp.cos(dx*k)-1))).subs(sp.cos(dx*k)-1,-2), s)
+
+
+
+'''
 # char. eq. of difference eq. with char. roots r1 r2
 r = sp.symbols( 'r', real=True )
 pdeDEC = pdeDE.subs( [ (e2, r**2), (e1, r), (e0,1) ] )
@@ -43,6 +62,7 @@ exp_trig_subs = { sp.exp(sp.I*theta):sp.cos(theta)+sp.I*sp.sin(theta), sp.exp(2*
 r_trig = [ x.subs(exp_trig_subs) for x in r_simple ]
 # r_trig_s = [ sp.trigsimp(x) for x in r_trig ]
 # r_trig_s_a_2 = [ sp.trigsimp(sp.re(x)**2 + sp.im(x)**2) for x in r_trig ]
+'''
 
 print('\tpde:', pde)
 print('\tpde discr.:', pdeD)
@@ -50,6 +70,13 @@ print('\tpde discr. with error(von Neumann/Fourier):', pdeDE)
 print('\te2c = ', e2c )
 print('\te2ct = ', e2ct )
 print('\tresult = ', result)
+print('\tchar_pol = ', char_pol)
+print('\tchar roots = ', roots)
+print('\tineq1',ineq1,'ineq2',ineq2)
+print('\tregion of p where |root|<1',region)
+print('\tinterval of s, where it is valid', ineq3)
+#print(list(region.boundary)[0])
+'''
 print('\tchar eq:', pdeDEC)
 print('\tchar. roots of difference eq:', roots  )
 print('\tchar. roots simplified:', r_simple)
@@ -59,3 +86,4 @@ print('\tchar. roots in trig form:', r_trig)
 
 tmp = 3 + 3*sp.I
 print('test',sp.Abs( sp.re(tmp)**2 + sp.im(tmp)**k ))
+'''

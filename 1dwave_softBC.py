@@ -14,7 +14,7 @@ omega = 2 * 3.14159265359 * f
 it = 5000 # iteration step number
 res = 256 # number of pixels
 size = res**2
-dx = (c/f) * 3 / 256 # spatial discretization length
+dx = (c/f) * (3.5) / 256 # spatial discretization length
 sigma = 0.9 # Courant number
 dt = sigma * dx / c # time discretization, with CFL criterion
 print('dt from CFL: ', dt)
@@ -74,9 +74,9 @@ for k in range( 1, int(it), 2 ):
         ub[i+1] = 2 * ua[i+1] - uc[i+1] + dt**2 * c**2 / dx**2 * ( ua[i+2] - 2 * ua[i+1] + ua[i] )
     # bc 
     # transducer
-    # ub[res+1] = ub[res] + dx * rho * d * omega**2 * np.sin( omega * dt * ( k ) ) - dx**2 / 2 / c**2 / dt**2 * ( ub[res] - 2 * ua[res] + uc[res] )
+    ub[res+1] = ub[res] + dx * rho * d * omega**2 * np.sin( omega * dt * ( k ) ) - dx**2 / 2 / c**2 / dt**2 * ( ub[res] - 2 * ua[res] + uc[res] )
     # weakly enforced transducer BC
-    ub[res+1] = 1 / ( 1 - c**2*dt**2/dx**2 + dt**2 * tauT / dx ) * ( c**2*dt**2/dx**2*( ub[res-1] - 2*ub[res] ) + 2*ua[res+1] - uc[res+1] ) - dt**2 * tauT * ( -ub[res] / dx - dx * rho * d * omega**2 * np.sin( omega * dt * ( k ) ) )
+    # ub[res+1] = 1 / ( 1 - c**2*dt**2/dx**2 + dt**2 * tauT / dx ) * ( c**2*dt**2/dx**2*( ub[res-1] - 2*ub[res] ) + 2*ua[res+1] - uc[res+1] ) - dt**2 * tauT * ( -ub[res] / dx - dx * rho * d * omega**2 * np.sin( omega * dt * ( k ) ) )
     # other end: wall or symmetry or VOID
     # Dirichlet = reflect with inverse phase
     # ub[0] = 0
@@ -97,13 +97,13 @@ for k in range( 1, int(it), 2 ):
         ua[i+1] = 2 * ub[i+1] - uc[i+1] + dt**2 * c**2 / dx**2 * ( ub[i+2] - 2 * ub[i+1] + ub[i] )
     # bc 
     # transducer
-    # ua[res+1] = ua[res] + dx * rho * d * omega**2 * np.sin( omega * dt * ( k + 1 ) ) - dx**2 / 2 / c**2 / dt**2 * ( ua[res] - 2 * ub[res] + uc[res] )
+    ua[res+1] = ua[res] + dx * rho * d * omega**2 * np.sin( omega * dt * ( k + 1 ) ) - dx**2 / 2 / c**2 / dt**2 * ( ua[res] - 2 * ub[res] + uc[res] )
     # weakly enforced transducer BC
-    ua[res+1] = 1 / ( 1 - c**2*dt**2/dx**2 + dt**2 * tauT / dx ) * ( c**2*dt**2/dx**2*( ua[res-1] - 2*ua[res] ) + 2*ub[res+1] - uc[res+1] ) - dt**2 * tauT * ( -ua[res] / dx - dx * rho * d * omega**2 * np.sin( omega * dt * ( k+1 ) ) )
+    # ua[res+1] = 1 / ( 1 - c**2*dt**2/dx**2 + dt**2 * tauT / dx ) * ( c**2*dt**2/dx**2*( ua[res-1] - 2*ua[res] ) + 2*ub[res+1] - uc[res+1] ) - dt**2 * tauT * ( -ua[res] / dx - dx * rho * d * omega**2 * np.sin( omega * dt * ( k+1 ) ) )
 
     # other end: wall or symmetry or VOID
     # Dirichlet = reflect with inverse phase
-    ua[0] = 0
+    # ua[0] = 0
     # Neumann = relfelct with same phase
     # ua[0] = ua[1]  + dx**2 / 2 / c**2 / dt**2 * ( ua[1] - 2 * uc[1] + uc[1] )
     # Sommerfeld = absorbtion all ( dp / dt + c dp / dx = 0 )

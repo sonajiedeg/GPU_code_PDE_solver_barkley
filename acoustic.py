@@ -6,7 +6,7 @@ plt.ion()
 # ----- material and bc parameters -----
 rho = 1e3 # density
 c = 1500 # speed of sound in water
-f = 20e3 # transducer frequency
+f = 20e1 # transducer frequency
 d = 10e-6 # transducer oscillation amplitude in [m]
 omega = 2 * 3.14159265359 * f
 # ----- simulation parameters -----
@@ -14,7 +14,7 @@ it = 50000 # iteration step number
 res = 256 # number of pixels
 size = res**2
 dx = (c/f) * 3 / 256 # spatial discretization length
-sigma = .9 # Courant number
+sigma = .01 # Courant number
 dt = sigma * dx / c # time discretization, with CFL criterion
 print('dt from CFL: ', dt)
 # TODO: examine effects of transducer frequency on max dt

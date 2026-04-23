@@ -11,7 +11,7 @@ f = 20e3 # transducer frequency
 d = 10e-6 # transducer oscillation amplitude in [m]
 omega = 2 * 3.14159265359 * f
 # ----- simulation parameters -----
-it = 50000 # iteration step number
+it = 5000 # iteration step number
 res = 256 # number of pixels
 size = res**2
 dx = (c/f) * 3 / 256 # spatial discretization length
@@ -31,14 +31,9 @@ uc = np.zeros([res + 2])
 va = np.zeros([res])
 vb = np.zeros([res])
 
-# create figure
-fig, ax = plt.subplots(figsize=(9, 6))
-ax.invert_yaxis()
-ax.set_xlabel('')
-ax.set_ylabel('')
-
 x = np.arange(res + 2) * dx
 
+# create figure
 fig, ax = plt.subplots(figsize=(9,6))
 line, = ax.plot(x, ua)
 
@@ -59,6 +54,9 @@ ua[res+1] = ua[res] + dx * rho * d * omega * omega * np.sin( omega * dt * (2 * k
 ua[0] = 0
 # haha, all is still 0 after the first step :)
 
+
+results = []
+
 for k in range( 1, int(it), 2 ):
     # save (k-2)th field variable, in gpu this only happend in the registers
     uc = ub.copy()
@@ -70,9 +68,9 @@ for k in range( 1, int(it), 2 ):
     ub[res+1] = ub[res] + dx * rho * d * omega**2 * np.sin( omega * dt * ( k ) ) - dx**2 / 2 / c**2 / dt**2 * ( ub[res] - 2 * ua[res] + uc[res] )
     # other end: wall or symmetry or VOID
     # Dirichlet = reflect with inverse phase
-    # ub[-1] = 0
+    ub[0] = 0
     # Neumann = relfelct with same phase
-    ub[0] = ub[1]  + dx**2 / 2 / c**2 / dt**2 * ( ub[1] - 2 * ua[1] + uc[1] )
+    # ub[0] = ub[1]  + dx**2 / 2 / c**2 / dt**2 * ( ub[1] - 2 * ua[1] + uc[1] )
     # Sommerfeld = absorbtion all ( dp / dt + c dp / dx = 0 )
     # Impedance = absorbe some ( dp / dt + Z*c dp / dx = 0 )
     # ub[0] = 1 / ( 1/dt - c/dx ) * ( ua[0] / dt - c * ub[1] / dx )
@@ -87,13 +85,14 @@ for k in range( 1, int(it), 2 ):
     ua[res+1] = ua[res] + dx * rho * d * omega**2 * np.sin( omega * dt * ( k + 1 ) ) - dx**2 / 2 / c**2 / dt**2 * ( ua[res] - 2 * ub[res] + uc[res] )
     # other end: wall or symmetry or VOID
     # Dirichlet = reflect with inverse phase
-    # ua[0] = 0
+    ua[0] = 0
     # Neumann = relfelct with same phase
-    ua[0] = ua[1]  + dx**2 / 2 / c**2 / dt**2 * ( ua[1] - 2 * uc[1] + uc[1] )
+    # ua[0] = ua[1]  + dx**2 / 2 / c**2 / dt**2 * ( ua[1] - 2 * uc[1] + uc[1] )
     # Sommerfeld = absorbtion all ( dp / dt + c dp / dx = 0 )
     # ua[0] = 1 / ( 1/dt - c/dx ) * ( ub[0] / dt - c * ua[1] / dx )
     # Impedance = absorbe some ( dp / dt + Z*c dp / dx = 0 )
     if snapshot and k % snap_mod == 0:
+        results.append(ua.copy())
         line.set_ydata(ua)
         ax.set_title(f"k = {k}, max = {np.max(ua)}")
         plt.draw()
@@ -101,3 +100,18 @@ for k in range( 1, int(it), 2 ):
  
  
 
+def update(frame):
+    y = results[frame]
+    line.set_data(x, y)
+    ax.set_title(f"frame = {frame}, max = {np.max(y):.2e}")
+    return line,
+
+ani = FuncAnimation(
+    fig,
+    update,
+    frames=len(results), 
+    interval=100,
+    blit=False
+)
+
+ani.save("simulation1d-cdm.mp4", writer="ffmpeg", fps=60, dpi=200)

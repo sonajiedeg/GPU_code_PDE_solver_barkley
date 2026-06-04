@@ -4,9 +4,9 @@
 
 #define run_gsync_restruct_int_friend 1
 #define DEVICE_ID 0
-#define ITERATIONS 500000
+#define ITERATIONS 1000000
 #define SNAPSHOT 1			// 1 => save snapshots
-#define SNAP_MODULUS 5000		// take snapshots if k % SNAP_MODULUS == 0
+#define SNAP_MODULUS 500		// take snapshots if k % SNAP_MODULUS == 0
 
 #define CUERR {																					\
 cudaError_t err;																				\

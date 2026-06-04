@@ -1,6 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
+from matplotlib.colors import SymLogNorm
 LABEL = 12
 FONT = 18
 res = 256
@@ -29,6 +30,7 @@ fig, ax = plt.subplots(figsize=(9, 6))
 heatmap = ax.imshow(
     data[0],
     cmap='winter',
+    #norm=SymLogNorm(vmin=-2e6, vmax=+2e6, linthresh=1e6), # Set your min > 0 and max
     interpolation='nearest',
     # vmin=vmin_value,
     # vmax=vmax_value
@@ -45,9 +47,12 @@ plt.tick_params(axis='both', which='major', labelsize=8)
 
 # Animation update function
 def update(frame):
+    # sub_data = data[frame] - np.mean(data[frame])
+    # heatmap.set_data(sub_data)
     heatmap.set_data(data[frame])
-    # heatmap.set_clim(np.min(data[frame]), np.max(data[frame])) # limit scales to actual min/max
-    heatmap.set_clim(-1e4,1e4) # limit scales to actual min/max
+    heatmap.set_clim(np.min(data[frame]), np.max(data[frame])) # limit scales to actual min/max
+    # heatmap.set_clim(-2e5,2e5) # limit scales to actual min/max
+    # heatmap.set_norm(matplotlib.colors.SymLogNorm(vmin=np.min(data[frame]), vmax=np.max(data[frame])))
     ax.set_title(f"simulation time {(frame*dt*STEP):.4f}, frame {frame}", fontsize=20)
     return [heatmap]
 
@@ -56,8 +61,7 @@ ani = FuncAnimation(
     fig,
     update,
     frames=num_frames,
-    interval=100,   # ms between frames
-    blit=False
+    interval=100,   # ms between frame
 )
 
 ani.save("simulation.mp4", writer="ffmpeg", fps=12, dpi=200)

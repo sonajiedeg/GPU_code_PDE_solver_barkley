@@ -47,7 +47,7 @@ plt.tick_params(axis='both', which='major', labelsize=8)
 def update(frame):
     heatmap.set_data(data[frame])
     # heatmap.set_clim(np.min(data[frame]), np.max(data[frame])) # limit scales to actual min/max
-    heatmap.set_clim(-1e1,1e1) # limit scales to actual min/max
+    heatmap.set_clim(-1e4,1e4) # limit scales to actual min/max
     ax.set_title(f"simulation time {(frame*dt*STEP):.4f}, frame {frame}", fontsize=20)
     return [heatmap]
 

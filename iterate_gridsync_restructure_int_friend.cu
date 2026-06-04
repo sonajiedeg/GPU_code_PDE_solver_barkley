@@ -54,9 +54,9 @@ static __device__ __forceinline__ void laplace_gi(float* r_un, int within_simspa
 }
 
 // iterate one timestep without laplace
-static __device__ __forceinline__ void iterate_without_laplace(const float r_ua, float* r_ub)
+static __device__ __forceinline__ void iterate_without_laplace(float r_ua, float* r_ub, float r_uc)
 {
-	*r_ub = 2 * r_ua - *r_ub; // TODO: Check if it is correct, but try first...
+	*r_ub = 2 * r_ua - r_uc; // TODO: Check if it is correct, but try first...
 }
 
 
@@ -110,7 +110,7 @@ __global__ void iterate_snap(float* g_ua, float* g_ub, float* g_v, int res, int 
 		r_uc1 = r_ub;
 
         // ----- Iteration step 1 -----
-        iterate_without_laplace(r_ua, &r_ub);
+        iterate_without_laplace(r_ua, &r_ub, r_uc2);
 
 // #pragma unroll
         for (int k = 0; k < iteration_limit_per_2; k++)
@@ -118,13 +118,13 @@ __global__ void iterate_snap(float* g_ua, float* g_ub, float* g_v, int res, int 
             whole_grid.sync();
 			// ----- Laplace 1 -----
             // laplace_gi(&r_ub, res, i, j, ThreadOffset, within_simspace_inner, lap_pa, lap_na, lap_sa);
-            laplace_gi(&r_vb, within_simspace_inner, lap_pa, lap_na, lap_sa);
+            laplace_gi(&r_ub, within_simspace_inner, lap_pa, lap_na, lap_sa);
 
 			// ----- save u_n{n-1} for BC at u_{n+1} 2-----
 			r_uc2 = r_ua;
 
             // ----- Iteration step 2 
-            iterate_without_laplace(r_ub, &r_ua);
+            iterate_without_laplace(r_ub, &r_ua, r_uc2);
 
             // ----- "Unload" Data And No Flux Bc 1 -----
             copy_r_to_g_and_no_flux_int_friend(g_ub, r_ub, r_ua, r_uc1, res, i, j, ThreadOffset, j_eq_1, j_eq_res_m_2, i_eq_1, i_eq_res_m_2, threadoffset_p_one, threadoffset_m_one, threadoffset_p_res, threadoffset_m_res, within_simspace_inner, k);
@@ -132,16 +132,16 @@ __global__ void iterate_snap(float* g_ua, float* g_ub, float* g_v, int res, int 
             
             // ----- Laplace 2 -----
             //laplace_gi(&r_ua, res, i, j, ThreadOffset, within_simspace_inner, lap_pb, lap_nb, lap_sb);
-            laplace_gi(&r_va, within_simspace_inner, lap_pb, lap_nb, lap_sb);
+            laplace_gi(&r_ua, within_simspace_inner, lap_pb, lap_nb, lap_sb);
 
 			// ----- save u_n{n-1} for BC at u_{n+1} 2-----
 			r_uc1 = r_ub;
 
             // ----- Iteration step 3 -----
-            iterate_without_laplace(r_ua, &r_ub);
+            iterate_without_laplace(r_ua, &r_ub, r_uc1);
 
             // ----- "Unload" Data And No Flux Bc 2 -----
-            copy_r_to_g_and_no_flux_int_friend(g_ua, r_ua, r_ub, r_uc2, res, i, j, ThreadOffset, j_eq_1, j_eq_res_m_2, i_eq_1, i_eq_res_m_2, threadoffset_p_one, threadoffset_m_one, threadoffset_p_res, threadoffset_m_res, within_simspace_inner, k);
+            copy_r_to_g_and_no_flux_int_friend(g_ua, r_ua, r_ub, r_uc2, res, i, j, ThreadOffset, j_eq_1, j_eq_res_m_2, i_eq_1, i_eq_res_m_2, threadoffset_p_one, threadoffset_m_one, threadoffset_p_res, threadoffset_m_res, within_simspace_inner, k+1);
 			// ----- save snapshot to global memory -----
 			if ( k % SNAP_MODULUS == 0 ){ g_snap[ThreadOffset + ( countSnap++ ) * size] = r_ua; }
         }
@@ -198,37 +198,37 @@ __global__ void iterate(float* g_ua, float* g_ub, float* g_v, int res, int itera
 		r_uc1 = r_ub;
 
         // ----- Iteration step 1 -----
-        iterate_without_laplace(r_ua, &r_ub);
+        iterate_without_laplace(r_ua, &r_ub, r_uc1);
 
 // #pragma unroll
         for (int k = 0; k < iteration_limit_per_2; k++)
         {
             whole_grid.sync();
             // ----- Laplace 1 -----
-            laplace_gi(&r_vb, within_simspace_inner, lap_pa, lap_na, lap_sa);
+            laplace_gi(&r_ub, within_simspace_inner, lap_pa, lap_na, lap_sa);
 
 			// ----- save u_n{n-1} for BC at u_{n+1} 2-----
 			r_uc2 = r_ua;
 
             // ----- Iteration step 2 
-            iterate_without_laplace(r_ub, &r_ua);
+            iterate_without_laplace(r_ub, &r_ua, r_uc2);
 
             // ----- "Unload" Data And No Flux Bc 1 -----
-            copy_r_to_g_and_no_flux_int_friend(g_ub, r_ub, r_ua, r_uc1, res, i, j, ThreadOffset, j_eq_1, j_eq_res_m_2, i_eq_1, i_eq_res_m_2, threadoffset_p_one, threadoffset_m_one, threadoffset_p_res, threadoffset_m_res, within_simspace_inner, k);
+            copy_r_to_g_and_no_flux_int_friend(g_ub, r_ub, r_uc2, r_uc1, res, i, j, ThreadOffset, j_eq_1, j_eq_res_m_2, i_eq_1, i_eq_res_m_2, threadoffset_p_one, threadoffset_m_one, threadoffset_p_res, threadoffset_m_res, within_simspace_inner, k);
             whole_grid.sync();
             
             // ----- Laplace 2 -----
 
-            laplace_gi(&r_va, within_simspace_inner, lap_pb, lap_nb, lap_sb);
+            laplace_gi(&r_ua, within_simspace_inner, lap_pb, lap_nb, lap_sb);
 
 			// ----- save u_n{n-1} for BC at u_{n+1} 2-----
 			r_uc1 = r_ub;
 
             // ----- Iteration step 3 -----
-			iterate_without_laplace(r_ua, &r_ub);
+			iterate_without_laplace(r_ua, &r_ub, r_uc1);
 
             // ----- "Unload" Data And No Flux Bc 2 -----
-            copy_r_to_g_and_no_flux_int_friend(g_ua, r_ua, r_ub, r_uc2, res, i, j, ThreadOffset, j_eq_1, j_eq_res_m_2, i_eq_1, i_eq_res_m_2, threadoffset_p_one, threadoffset_m_one, threadoffset_p_res, threadoffset_m_res, within_simspace_inner, k);
+            copy_r_to_g_and_no_flux_int_friend(g_ua, r_ua, r_uc1, r_uc2, res, i, j, ThreadOffset, j_eq_1, j_eq_res_m_2, i_eq_1, i_eq_res_m_2, threadoffset_p_one, threadoffset_m_one, threadoffset_p_res, threadoffset_m_res, within_simspace_inner, k);
         }
     }
 }
@@ -245,7 +245,7 @@ static __device__ __forceinline__ void copy_r_to_g_and_no_flux_int_friend(float*
     // ----- No Flux BC -----
     //s wall
     if (j_eq_1) { g_ua[threadoffset_m_res] = r_ua + 1/2/K * ( r_ua - 2 * r_ub + r_uc ); }
-    //w outlet
+    //w partial/total absorb, impedance/sommerfeld
     if (i_eq_1) { g_ua[threadoffset_m_one] = 0; }
     //e transducer
     if (i_eq_res_m_2) {

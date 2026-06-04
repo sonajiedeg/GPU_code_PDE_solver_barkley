@@ -14,7 +14,7 @@ it = 50000 # iteration step number
 res = 256 # number of pixels
 size = res**2
 dx = (c/f) * 3 / 256 # spatial discretization length
-sigma = .9 # Courant number
+sigma = .01 # Courant number
 dt = sigma * dx / c # time discretization, with CFL criterion
 print('dt from CFL: ', dt)
 # TODO: examine effects of transducer frequency on max dt
@@ -24,8 +24,8 @@ snapshot = 1 # if 1 take snapshot
 snap_mod = 9 # take snapshot if k % snap_mod == 0
 
 # transducer position
-tj1 = 64+16 # is transducer
-tj2 = 192-16 # is transducer
+tj1 = 64 # is transducer
+tj2 = 192 # is transducer
 # transducer - wall bc overlap with weights
 nmbr = 0
 w = ( np.linspace( 0, 1, num = nmbr+2 ) )[1:-1]

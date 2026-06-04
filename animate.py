@@ -20,8 +20,8 @@ print("data size:", data.size)
 print("expected per frame:", res*res)
 print("num_frames:", data.size // (res*res))
 
-vmin_value = -1e8
-vmax_value =  1e8
+# vmin_value = -1e1
+# vmax_value =  1e1
 
 # Create figure
 fig, ax = plt.subplots(figsize=(9, 6))

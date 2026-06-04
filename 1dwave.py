@@ -11,18 +11,24 @@ f = 20e3 # transducer frequency
 d = 10e-6 # transducer oscillation amplitude in [m]
 omega = 2 * 3.14159265359 * f
 # ----- simulation parameters -----
-it = 5000 # iteration step number
+it = 50000 # iteration step number
 res = 256 # number of pixels
 size = res**2
 dx = (c/f) * 3 / 256 # spatial discretization length
 sigma = .9 # Courant number
 dt = sigma * dx / c # time discretization, with CFL criterion
+Z = .8 # impedance BC parameter
+'''
+    Z = 1: Sommerfeld, no reflection
+    Z --> 0: Dirichlet, full reflection, phase inverting bc
+    Z --> inf: Neumann, full reflection
+'''
 print('dt from CFL: ', dt)
 # TODO: examine effects of transducer frequency on max dt
 # dt = min(dt, 1/20e4)
 # print('dt: ',dt)
 snapshot = 1 # if 1 take snapshot
-snap_mod = 1 # take snapshot if k % snap_mod == 0
+snap_mod = 3 # take snapshot if k % snap_mod == 0
 
 # init field variable arrays
 ua = np.zeros([res + 2])
@@ -68,11 +74,14 @@ for k in range( 1, int(it), 2 ):
     ub[res+1] = ub[res] + dx * rho * d * omega**2 * np.sin( omega * dt * ( k ) ) - dx**2 / 2 / c**2 / dt**2 * ( ub[res] - 2 * ua[res] + uc[res] )
     # other end: wall or symmetry or VOID
     # Dirichlet = reflect with inverse phase
-    ub[0] = 0
+    # ub[0] = 0
     # Neumann = relfelct with same phase
     # ub[0] = ub[1]  + dx**2 / 2 / c**2 / dt**2 * ( ub[1] - 2 * ua[1] + uc[1] )
     # Sommerfeld = absorbtion all ( dp / dt + c dp / dx = 0 )
+    # ub[0] = ua[0] + dt * c / dx * ( ua[1] - ua[0] ) # this works
+    # ub[0] = 1 / ( 1 + dt*c/dx ) * ( ua[0] + dt*c/dx*ub[1] ) # this works, but NOT perfect
     # Impedance = absorbe some ( dp / dt + Z*c dp / dx = 0 )
+    ub[0] = ua[0] + Z * dt * c / dx * ( ua[1] - ua[0] ) 
     # ub[0] = 1 / ( 1/dt - c/dx ) * ( ua[0] / dt - c * ub[1] / dx )
 
     # save (k-2)th field variable, in gpu this only happend in the registers
@@ -85,12 +94,15 @@ for k in range( 1, int(it), 2 ):
     ua[res+1] = ua[res] + dx * rho * d * omega**2 * np.sin( omega * dt * ( k + 1 ) ) - dx**2 / 2 / c**2 / dt**2 * ( ua[res] - 2 * ub[res] + uc[res] )
     # other end: wall or symmetry or VOID
     # Dirichlet = reflect with inverse phase
-    ua[0] = 0
+    # ua[0] = 0
     # Neumann = relfelct with same phase
     # ua[0] = ua[1]  + dx**2 / 2 / c**2 / dt**2 * ( ua[1] - 2 * uc[1] + uc[1] )
     # Sommerfeld = absorbtion all ( dp / dt + c dp / dx = 0 )
     # ua[0] = 1 / ( 1/dt - c/dx ) * ( ub[0] / dt - c * ua[1] / dx )
+    # ua[0] = ub[0] + dt * c / dx * ( ub[1] - ub[0] ) # this works
+    # ua[0] = 1 / ( 1 + dt*c/dx ) * ( ub[0] + dt*c/dx*ua[1] ) # this works, but NOT perfect
     # Impedance = absorbe some ( dp / dt + Z*c dp / dx = 0 )
+    ua[0] = ub[0] + dt * Z * c / dx * ( ub[1] - ub[0] )
     if snapshot and k % snap_mod == 0:
         results.append(ua.copy())
         line.set_ydata(ua)

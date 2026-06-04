@@ -10,12 +10,15 @@ f = 20e1 # transducer frequency
 d = 10e-6 # transducer oscillation amplitude in [m]
 omega = 2 * 3.14159265359 * f
 # ----- simulation parameters -----
-it = 50000 # iteration step number
+it = 5000 # iteration step number
 res = 256 # number of pixels
 size = res**2
 dx = (c/f) * 3 / 256 # spatial discretization length
 sigma = .01 # Courant number
 dt = sigma * dx / c # time discretization, with CFL criterion
+# transducer position:
+T_min = 64 # is incuded
+T_max = 192 # is icluded
 print('dt from CFL: ', dt)
 # TODO: examine effects of transducer frequency on max dt
 # dt = min(dt, 1/20e4)
@@ -32,8 +35,12 @@ vb = np.zeros([res,res])
 # Create figure
 fig, ax = plt.subplots(figsize=(9, 6))
 ax.invert_yaxis()
-ax.set_xlabel('')
-ax.set_ylabel('')
+ax.set_xlabel('j')
+ax.set_ylabel('i')
+
+# ----- list of points to be examined/plotted for examining the Transducer-Wall bc interracions
+PlotPoints = [[256,63],[256,64],[256,65]]
+uPlot = [[],[],[]]
 
 # ----------1st step----------
 k = 0
@@ -92,7 +99,7 @@ for k in range(1, int(it), 2):
     # bc 
     for j in range(res + 2):
         # if 64 < j and j < 192: 
-        if 0 <= j >= 256:
+        if T_min <= j <= T_max:
             # transducer
             ub[res+1,j] = ub[res,j] + dx * rho * d * omega**2 * np.sin( omega * dt * ( k ) ) - dx**2 / 2 / c**2 / dt**2 * ( ub[res,j] - 2 * ua[res,j] + uc[res,j] )
             # ub[res+1,j] = ub[res,j] + dt * rho * d * omega * np.sin( omega * dt * (k) )
@@ -107,6 +114,10 @@ for k in range(1, int(it), 2):
         # ub[i,res+1] = ub[i,res]
         ub[i,res+1] = ub[i,res] - dx**2 / 2 / c**2 / dt**2 * ( ub[i,res] - 2 * ua[i,res] + uc[i,res] )
         ub[i,res+1] = ub[i,res] - dx**2 / 2 / c**2 / dt**2 * ( ub[i,res] - 2 * ua[i,res] + uc[i,res] )
+
+    # ----- T-W bc debug:
+    for z in range(len(PlotPoints)):
+        uPlot[z].append( ub[ PlotPoints[z][0], PlotPoints[z][1] ] )
 
     # save prev field var
     uc = ua.copy()
@@ -128,7 +139,7 @@ for k in range(1, int(it), 2):
     # bc 
     for j in range(res + 2):
         # if 64 < j and j < 192: 
-        if 0 <= j >= 256:
+        if T_min <= j <= T_max:
             # transducer
             ua[res+1,j] = ua[res,j] + dx * rho * d * omega**2 * np.sin( omega * dt * ( k ) ) - dx**2 / 2 / c**2 / dt**2 * ( ua[res,j] - 2 * ub[res,j] + uc[res,j] )
             # ua[res+1,j] = ua[res,j] + dt * rho * d * omega * np.sin( omega * dt * (k) )
@@ -143,6 +154,11 @@ for k in range(1, int(it), 2):
         # ua[i,res+1] = ua[i,res]
         ua[i,res+1] = ua[i,res] - dx**2 / 2 / c**2 / dt**2 * ( ua[i,res] - 2 * ub[i,res] + uc[i,res] )
 
+    # ----- T-W bc debug:
+    for z in range(len(PlotPoints)):
+        uPlot[z].append( ua[ PlotPoints[z][0], PlotPoints[z][1] ] )
+
+
     if snapshot and k % snap_mod == 0:
         heatmap = ax.imshow(
             ua,
@@ -153,6 +169,25 @@ for k in range(1, int(it), 2):
             )
 
         ax.set_title(f"k = {k}, max = {np.max(ua)}")
+        ax.invert_yaxis()
+
         
         plt.draw()                # redraw
         plt.pause(0.001)          # allow GUI to update
+
+
+# ----- T-W bc debug plot
+n = range(len(uPlot[0])) 
+print(len(n), len(uPlot[0]))
+plt.figure(2)
+for i in range(len(PlotPoints)):
+    plt.plot(n,uPlot[i],label=PlotPoints[i])
+plt.grid()
+plt.legend()
+plt.show()
+plt.pause(10000)
+
+
+
+
+

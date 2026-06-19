@@ -1,0 +1,298 @@
+
+% \documentclass[twocolumn]{article}
+\documentclass{article}
+\usepackage{graphicx,amsmath,fancyhdr,fancyvrb,bm,hyperref}
+
+
+
+
+\hypersetup{
+	colorlinks=true,
+	linkcolor=blue,
+	filecolor=magenta,      
+	urlcolor=cyan,
+	pdftitle={Overleaf Example},
+	pdfpagemode=FullScreen,
+}
+
+\urlstyle{same}
+
+\title{Acoustic simulation documentation}
+\author{...}
+\date{2026}
+\pagenumbering{arabic}     % Use Arabic numerals (1, 2, 3, ...)
+\setcounter{page}{0}       % Start from page number 0
+\thispagestyle{empty}      % Removes number on the current page (the first one)
+\usepackage[a4paper,
+            bindingoffset=0in,
+            left=1.5cm,
+            right=1.5cm,
+            top=2cm,
+            bottom=1.5cm,
+            footskip=.25in]{geometry}
+\pagestyle{fancy}
+\fancyhf{} % clear all header and footer fields
+% Put section title on the top (left or right depending on odd/even pages)
+\fancyhead[L]{\nouppercase{\leftmark}}
+% Page number at the bottom center
+\fancyfoot[C]{\thepage}
+% invert colors comment untill star to get a printable version
+\usepackage{xcolor}
+\definecolor{mybg}{RGB}{30,30,30}
+\usepackage{background}
+\backgroundsetup{
+  scale=1,
+  % color=black,
+  % color=darkgray,
+  % color=mybg,
+  color=white,
+  opacity=1,
+  angle=0,
+  position=current page.center, % center aligns full-page rectangle
+  contents={\rule{\paperwidth}{\paperheight}}
+}
+% \color{white}
+% star
+
+% ----------------------------
+% ---------- MACROS ----------
+% ----------------------------
+% numberless section title + add this to the header
+\newcommand{\ms}[1]{%
+  \newpage%
+  \section*{Week #1, Lecture #1}%
+  \markboth{Week #1, Lecture #1}{}%
+  \setcounter{equation}{0}
+  \setcounter{section}{#1}
+  \setcounter{tocdepth}{1}
+  \addcontentsline{toc}{section}{Week #1, Lecture #1}
+}
+% partial derivative, fraction
+\newcommand{\pd}[2]{\frac{\partial #1}{\partial #2}}
+% upper dagger
+\newcommand{\adj}[0]{^\dag}
+% braket, bra, ket notations
+\newcommand{\braket}[2]{\left\langle #1 \middle| #2 \right\rangle}
+\newcommand{\ketbra}[2]{\left| #1 \middle\rangle \middle\langle #2 \right|}
+\newcommand{\bra}[1]{\left\langle #1 \right\vert}
+\newcommand{\ket}[1]{\left\vert #1 \right\rangle}
+% scalar product
+\newcommand{\scp}[2]{\left\langle #1 , #2 \right\rangle}
+% better sum
+\newcommand{\summ}[2]{\sum_{#1}^{#2}}
+% evaluated at
+\newcommand{\at}[2]{\left. #1 \right\rvert_{#2}}
+% array vertical column form stack exchange
+\makeatletter
+\renewcommand*\env@matrix[1][*\c@MaxMatrixCols c]{%
+  \hskip -\arraycolsep
+  \let\@ifnextchar\new@ifnextchar
+  \array{#1}}
+\makeatother
+% set,where { #1 | #2 }
+\newcommand{\setwhere}[2]{\begin{Bmatrix}[c|c] #1 & #2 \end{Bmatrix}}
+% norm
+\newcommand{\norm}[1]{\left\vert \left\vert #1 \right\vert \right\vert}
+% reference equation
+\newcommand{\refeq}[1]{equation (\ref{ #1 })}
+% Hilbert-Schmidt scalar product
+\newcommand{\scphs}[2]{\scp{#1}{#2}_{H-Sch}}
+% quantum system state space (S^+_1(\mathcal{H}))
+\newcommand{\qss}[0]{S^+_1(\mathcal{H})}
+\newcommand{\qssi}[0]{S^+_1(\mathcal{H}_I)}
+\newcommand{\qssii}[0]{S^+_1(\mathcal{H}_{II})}
+\newcommand{\qssprod}[0]{S^+_1(\mathcal{H}_I\otimes\mathcal{H}_{II})}
+\newcommand{\qssv}[0]{S(\mathcal{H})}
+\newcommand{\qssiv}[0]{S(\mathcal{H}_I)}
+\newcommand{\qssiiv}[0]{S(\mathcal{H}_{II})}
+\newcommand{\qssprodv}[0]{S(\mathcal{H}_I\otimes\mathcal{H}_{II})}
+% quantum system state space (S^+_1(  ))
+\newcommand{\qssf}[1]{S^+_1(#1)}
+% align* equation numbering
+\newcommand{\nt}{\stepcounter{equation}\tag{\theequation}}
+% in equation, often used words
+\newcommand{\und}[0]{\text{ and }}
+\newcommand{\oder}[0]{\text{ or }}
+\newcommand{\tr}[1]{\text{ Tr}\left( #1 \right)}
+\newcommand{\Span}[1]{\text{ Span}\left\{ #1 \right\}}
+% \newcommand{\span}[1]{\text{ Span }\left( #1 \right) }
+\newcommand{\carray}[1]{\begin{pmatrix} #1 \end{pmatrix}}
+\newcommand{\lin}[1]{\text{Lin}\left( #1 \right)}
+\newcommand{\subsectiontoc}[1]{%
+  \subsection*{#1}%
+  \addcontentsline{toc}{subsection}{#1}%
+}
+\newcommand{\subsubsectiontoc}[1]{%
+  \subsubsection*{#1}%
+  \addcontentsline{toc}{subsubsection}{#1}%
+}
+\newcommand{\paragraphtoc}[1]{%
+  \paragraph{#1}%
+  \addcontentsline{toc}{paragraph}{#1}%
+}
+
+\setlength{\parindent}{0pt} % removes paragraph indentation
+
+% equation numbering as <#section.x>
+\numberwithin{equation}{section}
+% ------------------------------
+% ---------- DOCUMENT ----------
+% ------------------------------
+\begin{document}
+
+\maketitle
+\thispagestyle{empty}      % Removes number on the current page (the first one)
+
+\newpage
+
+\setcounter{tocdepth}{4}
+\tableofcontents  % <-- generates the table of contents here
+\newpage           % optional, starts content on a new page
+
+
+\section{the pde}
+
+derivation at the wikipedia (TODO: provide link) \\
+\url{https://en.wikipedia.org/wiki/Acoustic\_wave\_equation}
+
+\begin{align}
+	\pd{^2p(\bm x,t)}{t^2} = a^2 \Delta p(\bm x,t) = a^2 \left( \pd{^2p}{x^2} + \pd{^2p}{y^2} \right)
+\end{align}
+
+here $\Delta$ is the Laplace operator
+
+\section{the boundary conditions}
+
+Homogeneous Dirichlet: $\at{p(\bm x,t)}{\bm x \in S_d}=0$
+
+Homogeneous Neumann: $\at{\nabla_{\bm x}p(\bm x,t)\cdot\bm n_n}{\bm x \in S_n} = 0$ % $\pd{p(\bm x_n,t)}{\bm x}=0$
+
+Inhomogeneous Neumann (Transducer): $\at{\nabla_{\bm x}p(\bm x,t)\cdot\bm n_t}{\bm x \in S_t} = \rho\omega^2d\sin(\omega t)$ % $\pd{p(\bm x_t,t)}{\bm x}=\rho\omega^2d\sin(\omega t)$ 
+
+(TODO: is this correct for the transducer?????)
+(TODO: add derivation later)
+
+Where $\bm n_*$ is the normal direction of the boundary\\
+adn $S_*$ is the set of given boundary points \\
+$\rho$ is the fluid density\\
+$\omega$ is the excitations angular frequency from the transducer\\
+$d$ is the displacement of the transducer
+
+\section{discretization}
+
+notations:
+\begin{align}
+	\pd{f(\bm x, t)}{t} = \dot f\\
+	\pd{g(x,t)}{x} = g'\\
+\end{align}
+for a uniform grid of:\\
+$(t_0,t_1,...,t_n,...,t_N)$\\
+$(x_0,x_1,...,x_j,...,x_J)$\\
+$(y_0,y_1,...,y_j,...,y_J)$\\
+the following notation is adapted: $p(x_j,y_i,t_n) = p^n_{j,i}$, and for 1D: $p(x_j,t_n) = p^n_{j}$\\
+here $x_0,y_0,x_J,y_J$, are at the boundary and $x_J-x_0=y_J-y_0=L$, the length of the square simulation domain\\
+$\Delta t = t_{n+1} - t_n$\\
+$\Delta x = x_{j+1} - x_j = \Delta y = y_{i+1} - y_i$
+
+\subsection{CFL}
+\begin{align}
+	\sigma = \frac{a \Delta t}{\Delta x} < 1 
+\end{align}
+
+\begin{align}
+	\Delta t \text{ proportional }  \Delta x \Rightarrow O(\Delta t) = O(\Delta x)
+\end{align}
+
+\subsection{pde}
+
+the central difference method is used, that can be seen at $\ref{eq:cdm}$
+
+\begin{align}\label{eq:cdm}
+	\left. \pd{^2f}{x^2}\right|_{x=x_j} \approx \frac{f_{j+1} - 2 f_{j} + f_{j-1}}{\Delta x^2} + O(\Delta x^2)
+\end{align}
+
+\begin{align}\label{eq:disc}
+	\frac{p^{n+1}_{j,i} - 2 p^{n}_{j,i} + p^{n-1}_{j,i}}{\Delta t^2} = a^2\left( \frac{p^{n}_{j+1,i} - 2 p^{n}_{j,i} + p^{n}_{j-1,i}}{\Delta x^2} + \frac{p^{n}_{j,i+1} - 2 p^{n}_{j,i} + p^{n}_{j,i-1}}{\Delta y^2}\right) + 
+\end{align}
+
+\begin{align}\label{eq:disc}
+	p^{n+1}_{j,i} = 2 p^{n}_{j,i} - p^{n-1}_{j,i} + \frac{a^2\Delta t^2}{\Delta x^2}\left( p^{n}_{j+1,i} + p^{n}_{j-1,i} + p^{n}_{j,i+1} + p^{n}_{j,i-1} - 4 p^{n}_{j,i}\right)
+\end{align}
+
+\subsection{bc}
+\subsubsection{Homogeneous Dirichlet in 1D}
+\begin{align}
+	p^n_{j_d} = 0
+\end{align}
+
+\subsubsection{Homogeneous Neumann in 1D, second order}
+\begin{align}
+	\left\{ \begin{matrix} \ddot p (x,t) = a^2 p''(x,t) \qquad | x \in (0,L) \\ p'(0,t)=0=p'^n_0 \\ p'(L,t)=p'^n_J = \rho d \omega^2 \sin \left( \omega t \right) \qquad | x_J=L \end{matrix} \right.
+\end{align}
+
+\begin{align}
+	\frac{p^n_1 - p^n_0}{\Delta x} = p'^n_{1/2} + O(\Delta x^2) \overset{\ref{eq:shift1}}{=} p'^n_0 - \frac{\frac{\Delta x}{2}}{1!}p''^n_{1/2}+O(\Delta x^2) \overset{\ref{eq:shift2}}{=} p'^n_0 - \frac{\Delta x}{2}p''^n_{1}+O(\Delta x^2) \overset{\ref{eq:shift3}}{=} \nonumber \\ \overset{\ref{eq:shift3}}{=}  p'^n_0 - \frac{\Delta x}{2}p''^{n-1}_{1}+O(\Delta x^2)\overset{\ref{eq:shift4}}{=} p'^n_0 - \frac{\Delta x}{2c^2\Delta t^2}\left( p^n_1-2p^{n-1}_1+p^{n-2}_1 \right)+O(\Delta x^2)
+\end{align}
+
+\begin{align}\label{eq:shift1}
+	p'^n_0=p'^n_{1/2} + \frac{\frac{\Delta x}{2}}{1!}p''^n_{1/2}+O(\Delta x^2)
+\end{align}
+
+\begin{align}\label{eq:shift2}
+	p''^n_{1/2} = p''^n_1 - \frac{\frac{\Delta x}{2}}{1!}p'''^n_1 + O(\Delta x^2) = p''^n_1 + O(\Delta x) 
+\end{align}
+
+\begin{align}\label{eq:shift3}
+	p''^n_{1} = p''^{n-1}_1 + O(\Delta t) \overset{CFL}{=} p''^{n-1}_1 + O(\Delta x) 
+\end{align}
+
+from the equation of motion
+\begin{align}\label{eq:shift4}
+	p''^{n-1}_{1} = \frac{1}{c^2}\ddot p^{n-1}_1 = \frac{1}{c^2\Delta t^2}\left( p^n_1-2p^{n-1}_1+p^{n-2}_1 \right) + O(\Delta t^2)
+\end{align}
+
+\begin{align}
+	p^n_0 = p^n_1 - \Delta x p'^n_0 + \frac{\Delta x^2}{2 a^2\Delta t^2 } \left( p^n_1 - 2p^{n-1}_1 + p^{n-2}_1 \right) + O(\Delta x ^3) = \nonumber \\
+	= p^n_1 + \frac{\Delta x^2}{2 a^2\Delta t^2 } \left( p^n_1 - 2p^{n-1}_1 + p^{n-2}_1 \right) + O(\Delta x ^3)
+\end{align}
+
+\subsubsection{Inhomogeneous Neuann, Transducer in 1D, second order}
+similarily as the previous section
+
+\begin{align}
+	p^n_J = p^n_{J-1} + \Delta x p'^n_J - \frac{\Delta x^2}{2 a^2\Delta t^2 } \left( p^n_{J-1} - 2p^{n-1}_{J-1} + p^{n-2}_{J-1} \right) + O(\Delta x ^3)
+\end{align}
+
+\begin{align}
+	p^n_J = p^n_{J-1} + \Delta x \rho d \omega^2 \sin \left( \omega t_n \right) - \frac{\Delta x^2}{2 a^2\Delta t^2 } \left( p^n_{J-1} - 2p^{n-1}_{J-1} + p^{n-2}_{J-1} \right) + O(\Delta x ^3)
+\end{align}
+
+$t_n = n\Delta t$
+
+\subsubsection{Impedance or Sommerfeld bc, in 1D, first order}
+
+$\pd{p(x,t)}{t}+Za\pd{p(x,t)}{n}=0$
+
+Note: if the normal of the boundary is $(-1)$ (or in 2D $(-1,0)$) then $n = -x$\\
+$a$ is the speed of sound\\
+$Z$ is the impedance\\
+$Z=0\Rightarrow$ Dirichlet (reflection with same phase)\\
+$Z=1\Rightarrow$ Sommerfeld (no reflection, all is absorbed)\\
+$Z\rightarrow\infty \Rightarrow$ Neumann (phase inverting reflection)\\
+for $n = -x$, with Explicit Euler
+\begin{align}
+	\frac{p^n_0 - p^{n-1}_0}{\Delta t} = Za\frac{p^{n-1}_1 - p^{n-1}_0}{\Delta x}\\
+	p^n_0 = p^{n-1}_0 + \frac{Z a }{\Delta x} \left( p^{n-1}_1 - p^{n-1}_0 \right)
+\end{align}
+    % ub[0] = ua[0] + Z * dt * c / dx * ( ua[1] - ua[0] ) 
+
+for $n = x$, with Explicit Euler
+\begin{align}
+	\frac{p^n_J - p^{n-1}_J}{\Delta t} = - Za\frac{p^{n-1}_J - p^{n-1}_{J-1}}{\Delta x}\\
+	p^n_J = p^{n-1}_J - \frac{Z a }{\Delta x} \left( p^{n-1}_J - p^{n-1}_{J-1} \right)
+\end{align}
+
+
+
+
+\end{document}

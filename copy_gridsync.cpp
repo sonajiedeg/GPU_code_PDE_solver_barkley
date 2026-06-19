@@ -1,3 +1,4 @@
+#include "param.h"
 #include <stdio.h>
 
 #include <iostream>
@@ -93,12 +94,12 @@ void array_to_text(float* u_sol, int res)
     }
 };
 
-void snap_to_text(float* uSnap, int res)
+void snap_to_text(float* uSnap, int res, SimParamStruct params)
 {
     const unsigned int s = res * res;
 	FILE* file = fopen("u_snap.bin", "wb");
 
-    fwrite(uSnap, sizeof(float), res * res * int( ITERATIONS / SNAP_MODULUS / 2 ) , file);
+    fwrite(uSnap, sizeof(float), res * res * int( params.ITERATIONS / SNAP_MODULUS / 2 ) , file);
 
     fclose(file);
 };

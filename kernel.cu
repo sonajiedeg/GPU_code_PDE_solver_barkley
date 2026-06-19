@@ -2,11 +2,12 @@
 //----------DEFINE RUN PARAMETERS------------------------
 //-------------------------------------------------------
 
+
 #define run_gsync_restruct_int_friend 1
 #define DEVICE_ID 0
-#define ITERATIONS 1000000
+// #define ITERATIONS 1000000
 #define SNAPSHOT 1			// 1 => save snapshots
-#define SNAP_MODULUS 500		// take snapshots if k % SNAP_MODULUS == 0
+#define SNAP_MODULUS 1		// take snapshots if k % SNAP_MODULUS == 0
 
 #define CUERR {																					\
 cudaError_t err;																				\
@@ -23,6 +24,8 @@ cudaError_t err;																				\
 #include "copy_gridsync.cpp"
 #include "iterate_gridsync_restructure_int_friend.cu"
 #include "unifi.cu"
+#include "param.h"
+#include "paramSetup.cpp"
 #include <stdio.h>
 #include <iostream>
 #include <fstream>
@@ -43,7 +46,7 @@ namespace cg = cooperative_groups;
 
 
 cudaError_t iterate_prep(float* u, float* v, float* u_sol, unsigned int size, int res);
-void print_runtimes(std::chrono::steady_clock::time_point begin, std::chrono::steady_clock::time_point end);
+void print_runtimes(std::chrono::steady_clock::time_point begin, std::chrono::steady_clock::time_point end, SimParamStruct params);
 
 int main()
 {
@@ -71,15 +74,16 @@ int main()
 // Helper function for using CUDA to add vectors in parallel.
 cudaError_t iterate_prep(float* u, float* v, float* u_sol, unsigned int size, int res)
 {
+	SimParamStruct params = paramSetup();
     float* dev_ua = 0;
     float* dev_ub = 0;
     float* dev_v = 0;
     float* dev_2_u = 0;
 	float* dev_snap = 0;
-	void* kernelArgs[6];
-	float* uSnap = new float[ size * int( ITERATIONS / SNAP_MODULUS / 2 ) ];
+	void* kernelArgs[7];
+	float* uSnap = new float[ size * int( params.ITERATIONS / SNAP_MODULUS / 2 ) ];
     //measure at this iteration
-    int iteration_limit_per_2 = ITERATIONS / 2;
+    int iteration_limit_per_2 = params.ITERATIONS / 2;
 
     // cooperative kernel launch parameters
 	if ( SNAPSHOT ){
@@ -89,6 +93,7 @@ cudaError_t iterate_prep(float* u, float* v, float* u_sol, unsigned int size, in
 		kernelArgs[3] = (void*)&res;
 		kernelArgs[4] = (void*)&iteration_limit_per_2;
 		kernelArgs[5] = (void*)&(dev_snap);
+		kernelArgs[6] = (void*)&params;
 	}
 	else{
 		kernelArgs[0] = (void*)&(dev_ua);
@@ -96,6 +101,7 @@ cudaError_t iterate_prep(float* u, float* v, float* u_sol, unsigned int size, in
 		kernelArgs[2] = (void*)&(dev_v);
 		kernelArgs[3] = (void*)&res;
 		kernelArgs[4] = (void*)&iteration_limit_per_2;
+		kernelArgs[5] = (void*)&params;
 	}
 
     dim3 dimBlock(32, 32, 1);
@@ -118,10 +124,10 @@ cudaError_t iterate_prep(float* u, float* v, float* u_sol, unsigned int size, in
         cout << "gridsync restruct \n";
         // Allocate GPU buffers
 		if ( SNAPSHOT ){
-			init(u, v, &dev_2_u, &dev_ua, &dev_ub, &dev_v, size, DEVICE_ID, &dev_snap); CUERR;
+			init(u, v, &dev_2_u, &dev_ua, &dev_ub, &dev_v, size, DEVICE_ID, &dev_snap, params); CUERR;
 		}
 		else{
-			init(u, v, &dev_2_u, &dev_ua, &dev_ub, &dev_v, size, DEVICE_ID); CUERR;
+			init(u, v, &dev_2_u, &dev_ua, &dev_ub, &dev_v, size, DEVICE_ID, params); CUERR;
 		}
         cudaDeviceSynchronize();
         // ---------- Launch a kernel on the GPU with one thread for each element. ----------
@@ -132,7 +138,7 @@ cudaError_t iterate_prep(float* u, float* v, float* u_sol, unsigned int size, in
         cudaDeviceSynchronize(); CUERR;
 
         end = std::chrono::steady_clock::now();
-        print_runtimes(begin, end);
+        print_runtimes(begin, end, params);
 
         // Check for any errors launching the kernel
         cudaGetLastError(); CUERR;
@@ -144,13 +150,13 @@ cudaError_t iterate_prep(float* u, float* v, float* u_sol, unsigned int size, in
         // Copy output vector from GPU buffer to host memory.
         cudaMemcpy(u, dev_ua, size * sizeof(float), cudaMemcpyDeviceToHost); CUERR;
 
-		cudaMemcpy(uSnap, dev_snap, size * sizeof(float) * int( ITERATIONS / SNAP_MODULUS / 2 ), cudaMemcpyDeviceToHost); CUERR;
+		cudaMemcpy(uSnap, dev_snap, size * sizeof(float) * int( params.ITERATIONS / SNAP_MODULUS / 2 ), cudaMemcpyDeviceToHost); CUERR;
 
         cudaDeviceSynchronize(); CUERR;
 
         array_to_text(u, res);
 
-		snap_to_text(uSnap, res);
+		snap_to_text(uSnap, res, params);
 
         test(u, size);
     }
@@ -164,10 +170,10 @@ cudaError_t iterate_prep(float* u, float* v, float* u_sol, unsigned int size, in
     return cudaStatus;
 }
 
-void print_runtimes(std::chrono::steady_clock::time_point begin, std::chrono::steady_clock::time_point end)
+void print_runtimes(std::chrono::steady_clock::time_point begin, std::chrono::steady_clock::time_point end, SimParamStruct params)
 {
     //measure at this iteration
-    int iteration_limit_per_2 = ITERATIONS / 2;
+    int iteration_limit_per_2 = params.ITERATIONS / 2;
     int average_iteration_runtime;
     average_iteration_runtime = std::chrono::duration_cast<std::chrono::microseconds> (end - begin).count() / 2 / iteration_limit_per_2;
     cout << "average iteration runtime (count one of 2 iteration per kernel) : " << average_iteration_runtime << "[us]" << endl;

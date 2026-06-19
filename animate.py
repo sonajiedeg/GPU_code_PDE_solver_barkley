@@ -61,10 +61,10 @@ ani = FuncAnimation(
     fig,
     update,
     frames=num_frames,
-    interval=100,   # ms between frame
+    interval=20,   # ms between frame
 )
 
-ani.save("simulation.mp4", writer="ffmpeg", fps=12, dpi=200)
+ani.save("sCFL_0_6_30lam_ref.mp4", writer="ffmpeg", fps=36, dpi=200)
 
 plt.show()
 

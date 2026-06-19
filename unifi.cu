@@ -1,15 +1,16 @@
 #include <string>
+#include "param.h"
 
 
-cudaError_t init(float* u, float* v, float** dev_2_u, float** dev_ua, float** dev_ub, float** dev_v, unsigned int size, int device_id, float** dev_snap);
+cudaError_t init(float* u, float* v, float** dev_2_u, float** dev_ua, float** dev_ub, float** dev_v, unsigned int size, int device_id, float** dev_snap, SimParamStruct params);
 // init 
-cudaError_t init(float* u, float* v, float** dev_2_u, float** dev_ua, float** dev_ub, float** dev_v, unsigned int size, int device_id);
+cudaError_t init(float* u, float* v, float** dev_2_u, float** dev_ua, float** dev_ub, float** dev_v, unsigned int size, int device_id, SimParamStruct params);
 
-cudaError_t init(float** dev_2_u, float** dev_ua, float** dev_ub, float** dev_v, unsigned int res, float** dev_snap);
+cudaError_t init(float** dev_2_u, float** dev_ua, float** dev_ub, float** dev_v, unsigned int res, float** dev_snap, SimParamStruct params);
 
-cudaError_t init(float** dev_2_u, float** dev_ua, float** dev_ub, float** dev_v, unsigned int res);
+cudaError_t init(float** dev_2_u, float** dev_ua, float** dev_ub, float** dev_v, unsigned int res, SimParamStruct params);
 
-cudaError_t init(float* u, float* v, float** dev_2_u, float** dev_ua, float** dev_ub, float** dev_v, unsigned int size, int device_id, float** dev_snap)
+cudaError_t init(float* u, float* v, float** dev_2_u, float** dev_ua, float** dev_ub, float** dev_v, unsigned int size, int device_id, float** dev_snap, SimParamStruct params)
 {
     /*
     cudaFree(*dev_2_u);
@@ -38,13 +39,13 @@ cudaError_t init(float* u, float* v, float** dev_2_u, float** dev_ua, float** de
 
     // cudaStatus = cudaMemcpy(*dev_v, v, size * sizeof(float), cudaMemcpyHostToDevice); CUERR;
 	// allocate mem for snapshots
-    cudaStatus = cudaMalloc((void**)dev_snap, size * sizeof(float) * ( int( ITERATIONS / SNAP_MODULUS / 2 ) ) ); CUERR;
+    cudaStatus = cudaMalloc((void**)dev_snap, size * sizeof(float) * ( int( params.ITERATIONS / SNAP_MODULUS / 2 ) ) ); CUERR;
 
 	cudaStatus = cudaGetLastError();
     return cudaStatus;  // Successful allocation
 }
 
-cudaError_t init(float* u, float* v, float** dev_2_u, float** dev_ua, float** dev_ub, float** dev_v, unsigned int size, int device_id)
+cudaError_t init(float* u, float* v, float** dev_2_u, float** dev_ua, float** dev_ub, float** dev_v, unsigned int size, int device_id, SimParamStruct params)
 {
     /*
     cudaFree(*dev_2_u);
@@ -129,7 +130,7 @@ bool test(float* u, int size)
     return true;
 }
 
-cudaError_t init(float** dev_2_u, float** dev_ua, float** dev_ub, float** dev_v, unsigned int res, float** dev_snap)
+cudaError_t init(float** dev_2_u, float** dev_ua, float** dev_ub, float** dev_v, unsigned int res, float** dev_snap, SimParamStruct params)
 {
     cudaError_t cudaStatus;
 
@@ -142,13 +143,15 @@ cudaError_t init(float** dev_2_u, float** dev_ua, float** dev_ub, float** dev_v,
 	*dev_v = *dev_2_u + 2 * res;
 
 	// allocate mem for snapshots
-	cudaMalloc((void**)dev_snap, res * sizeof(float) * ( int( ITERATIONS / SNAP_MODULUS / 2 ) ) ); CUERR;
+	cudaMalloc((void**)dev_snap, res * sizeof(float) * ( int( params.ITERATIONS / SNAP_MODULUS / 2 ) ) ); CUERR;
+
+	// cudaMemcpyToSymbol(d_params, &h_params, sizeof(SimParams));
 
 	cudaStatus = cudaGetLastError();
     return cudaStatus;  // Successful allocation
 }
 
-cudaError_t init(float** dev_2_u, float** dev_ua, float** dev_ub, float** dev_v, unsigned int res)
+cudaError_t init(float** dev_2_u, float** dev_ua, float** dev_ub, float** dev_v, unsigned int res, SimParamStruct params)
 {
     cudaError_t cudaStatus;
 

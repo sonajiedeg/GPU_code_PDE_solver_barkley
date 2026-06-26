@@ -10,13 +10,17 @@ SimParamStruct paramSetup(){
 	params.dx = params.c / params.f * lInWavelenght / res; //  m divide
 	// CFL criterion with Courant number C_CFL = smalld by 256
 	// params.dt = 5.859374999999999e-9 / 4;
-	params.sigma = 0.6; // CFL
+	params.sigma = 0.4; // CFL
 	params.dt = params.sigma * params.dx / params.c;
 
-	// params.K = ( dt * c2 ) / ( 6 * dx * dx ); // ( dt * c^2 ) / ( 6 * dx^2 ) this comes from
-	params.K = params.dt*params.dt * params.c*params.c / params.dx / params.dx; // ( dt * c^2 ) / ( 6 * dx^2 ) this comes from
+	// for 9 point stencil
+	// params.K = ( params.dt * params.dt * params.c2 ) / ( 6 * params.dx * params.dx ); // ( dt * c^2 ) / ( 6 * dx^2 ) this comes from
+	// for 5 point stencil
+	 params.K = params.dt*params.dt * params.c*params.c / params.dx / params.dx; // ( dt * c^2 ) / ( 6 * dx^2 ) this comes from
 						  // the E.E. time discretization
 						  // and from the 9 point stencil of the Laplace operator
+	// params.bck = 1/2/params.K;					  //
+	params.bck = 1/2/(params.dt*params.dt * params.c*params.c / params.dx / params.dx);
 	params.rho = 1e3;
 	params.d = 10e-6;
 	params.omega = 2 * 3.14159265359 * params.f;
@@ -38,7 +42,19 @@ SimParamStruct paramSetup(){
 	 *		  = res / sig
 	*/
 	float t = lInWavelenght / params.f; // i want to set it so it just reaches the other wall
-	params.ITERATIONS = round( t / params.dt / 2 ) * 2 * 3;
-	printf("%d",params.ITERATIONS);
+	params.ITERATIONS = round( t / params.dt / 4 ) * 2;
+	// params.ITERATIONS = round( t / params.dt / 2 ) * 2 * 3;
+	params.tsc = 100;
+	params.SNAPSHOT = 1;
+	params.SNAP_MODULUS = floor( params.ITERATIONS / params.tsc );
+	// printf("%d",params.ITERATIONS);
+	// save all timesteps, save all p and dp_dx and dp_dy
+	params.all = 1;
+	if(params.all){
+		params.snap_grad = 1;
+		params.SNAPSHOT = 1;
+		params.SNAP_MODULUS = 1;
+		params.tsc = params.ITERATIONS;
+	}
 	return params;
 }

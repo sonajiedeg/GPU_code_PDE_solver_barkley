@@ -11,7 +11,7 @@ STEP = 500.0
 
 # Choose your mode: 'heatmap_anim', 'line_anim', 'line_static', or 'point_static'
 RUN_MODE = 'heatmap_anim'
-# RUN_MODE = 'point_static'
+# RUN_MODE = 'line_anim'
 # RUN_MODE = 'point_static'
 # RUN_MODE = 'point_static'
 
@@ -28,6 +28,7 @@ POINTS_TO_PLOT = [(128, 128), (128, 138), (64, 128)]
 # --- 2. DATA LOADING ---
 print("Loading data...")
 data = np.fromfile("u_snap.bin", dtype=np.float32)
+# data = np.fromfile("u_snap_gradx.bin", dtype=np.float32)
 
 num_frames = data.size // (res * res)
 data = data.reshape((num_frames, res, res))
@@ -64,7 +65,7 @@ if RUN_MODE == 'heatmap_anim':
         return [heatmap]
 
     ani = FuncAnimation(fig, update_heatmap, frames=num_frames, interval=20)
-    ani.save("s2_CFL_0_4_30lam_ref.mp4", writer="ffmpeg", fps=36, dpi=200)
+    ani.save("s5point.mp4", writer="ffmpeg", fps=36, dpi=200)
     plt.show()
 
 elif RUN_MODE == 'line_anim':

@@ -6,8 +6,6 @@
 #define run_gsync_restruct_int_friend 1
 #define DEVICE_ID 0
 // #define ITERATIONS 1000000
-#define SNAPSHOT 1			// 1 => save snapshots
-#define SNAP_MODULUS 1		// take snapshots if k % SNAP_MODULUS == 0
 
 #define CUERR {																					\
 cudaError_t err;																				\
@@ -56,18 +54,23 @@ int main()
     float* v = new float[size];
     float* u_sol = new float[size];
 
+	// read ic
     text_to_array(u, v);
 
     // Add vectors in parallel.
     cudaError_t cudaStatus = iterate_prep(u, v, u_sol, size, res); CUERR;
     // array_to_text(u, res);
-
+	
     // cudaDeviceReset must be called before exiting in order for profiling and
     // tracing tools such as Nsight and Visual Profiler to show complete traces.
     cudaStatus = cudaDeviceReset(); CUERR;
+	
     delete[] u;
+	
     delete[] u_sol;
+	
     delete[] v;
+	
     return 0;
 }
 
@@ -80,13 +83,28 @@ cudaError_t iterate_prep(float* u, float* v, float* u_sol, unsigned int size, in
     float* dev_v = 0;
     float* dev_2_u = 0;
 	float* dev_snap = 0;
-	void* kernelArgs[7];
-	float* uSnap = new float[ size * int( params.ITERATIONS / SNAP_MODULUS / 2 ) ];
+	float* dev_snap_gradx = 0;
+	float* dev_snap_grady = 0;
+	void* kernelArgs[9];
+	float* uSnap = new float[ size * int( params.tsc ) ];
+	float* uSnapGradx = new float[ size * int( params.tsc ) ];
+	float* uSnapGrady = new float[ size * int( params.tsc ) ];
     //measure at this iteration
     int iteration_limit_per_2 = params.ITERATIONS / 2;
 
     // cooperative kernel launch parameters
-	if ( SNAPSHOT ){
+	if ( params.all ){
+		kernelArgs[0] = (void*)&(dev_ua);
+		kernelArgs[1] = (void*)&(dev_ub);
+		kernelArgs[2] = (void*)&(dev_v);
+		kernelArgs[3] = (void*)&res;
+		kernelArgs[4] = (void*)&iteration_limit_per_2;
+		kernelArgs[5] = (void*)&(dev_snap);
+		kernelArgs[6] = (void*)&params;
+		kernelArgs[7] = (void*)&(dev_snap_gradx);
+		kernelArgs[8] = (void*)&(dev_snap_grady);
+	}
+	else if ( params.SNAPSHOT ){
 		kernelArgs[0] = (void*)&(dev_ua);
 		kernelArgs[1] = (void*)&(dev_ub);
 		kernelArgs[2] = (void*)&(dev_v);
@@ -123,7 +141,10 @@ cudaError_t iterate_prep(float* u, float* v, float* u_sol, unsigned int size, in
     {
         cout << "gridsync restruct \n";
         // Allocate GPU buffers
-		if ( SNAPSHOT ){
+		if ( params.all){
+			init(u, v, &dev_2_u, &dev_ua, &dev_ub, &dev_v, size, DEVICE_ID, &dev_snap, params, &dev_snap_gradx, &dev_snap_grady); CUERR;
+		}
+		if ( params.SNAPSHOT ){
 			init(u, v, &dev_2_u, &dev_ua, &dev_ub, &dev_v, size, DEVICE_ID, &dev_snap, params); CUERR;
 		}
 		else{
@@ -133,7 +154,8 @@ cudaError_t iterate_prep(float* u, float* v, float* u_sol, unsigned int size, in
         // ---------- Launch a kernel on the GPU with one thread for each element. ----------
         begin = std::chrono::steady_clock::now();
 
-        if ( SNAPSHOT ){ cudaLaunchCooperativeKernel((void*)iterate_snap, dimGrid, dimBlock, kernelArgs); }
+        if ( params.all ){ cudaLaunchCooperativeKernel((void*)iterate_snap_grad, dimGrid, dimBlock, kernelArgs); }
+		else if ( params.SNAPSHOT ){ cudaLaunchCooperativeKernel((void*)iterate_snap, dimGrid, dimBlock, kernelArgs); }
 		else{ cudaLaunchCooperativeKernel((void*)iterate, dimGrid, dimBlock, kernelArgs); }
         cudaDeviceSynchronize(); CUERR;
 
@@ -147,25 +169,52 @@ cudaError_t iterate_prep(float* u, float* v, float* u_sol, unsigned int size, in
         // any errors encountered during the launch.
         cudaDeviceSynchronize(); CUERR;
 
+		
         // Copy output vector from GPU buffer to host memory.
         cudaMemcpy(u, dev_ua, size * sizeof(float), cudaMemcpyDeviceToHost); CUERR;
 
-		cudaMemcpy(uSnap, dev_snap, size * sizeof(float) * int( params.ITERATIONS / SNAP_MODULUS / 2 ), cudaMemcpyDeviceToHost); CUERR;
+		
+		if ( params.all ) {
+			cudaMemcpy(uSnapGradx, dev_snap_gradx, size * sizeof(float) * int( params.tsc ), cudaMemcpyDeviceToHost); CUERR;
+			
+			cudaMemcpy(uSnapGrady, dev_snap_grady, size * sizeof(float) * int( params.tsc ), cudaMemcpyDeviceToHost); CUERR;
+			
+		}
+		if ( params.SNAPSHOT ) { cudaMemcpy(uSnap, dev_snap, size * sizeof(float) * int( params.tsc ), cudaMemcpyDeviceToHost); CUERR; }
 
+		
         cudaDeviceSynchronize(); CUERR;
 
-        array_to_text(u, res);
+        // array_to_text(u, res);
 
-		snap_to_text(uSnap, res, params);
+		
+		snap_to_text(uSnap, res, params, "u_snap.bin");
+		
+		snap_to_text(uSnapGradx, res, params, "u_snap_gradx.bin");
+		
+		snap_to_text(uSnapGrady, res, params, "u_snap_grady.bin");
+		
 
         test(u, size);
     }
 
 // Error:
     cudaFree(dev_v); CUERR;
+	
     cudaFree(dev_2_u); CUERR;
+	
 	cudaFree(dev_snap); CUERR;
+	
+	cudaFree(dev_snap_gradx); CUERR;
+	
+	cudaFree(dev_snap_grady); CUERR;
+	
 	delete[] uSnap;
+	
+	delete[] uSnapGradx;
+	
+	delete[] uSnapGrady;
+	
 
     return cudaStatus;
 }

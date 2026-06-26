@@ -2,6 +2,11 @@
 
 struct SimParamStruct{
 	int ITERATIONS;
+	int SNAPSHOT;			// 1 => save snapshots
+	int SNAP_MODULUS;		// take snapshots if k % SNAP_MODULUS == 0
+	int tsc; // target shot count
+	int all;
+	int snap_grad;
 	float f;
 	float c;   // c ~= 1500 m/s, then take its square
 	float c2; 
@@ -15,6 +20,7 @@ struct SimParamStruct{
 	float K; // ( dt * c^2 ) / ( 6 * dx^2 ) this comes from
 					  // the E.E. time discretization
 					  // and from the 9 point stencil of the Laplace operator
+	float bck;
 	float rho;
 	float d;
 	float omega;

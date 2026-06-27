@@ -49,7 +49,7 @@ SimParamStruct paramSetup(){
 	params.SNAP_MODULUS = floor( params.ITERATIONS / params.tsc );
 	// printf("%d",params.ITERATIONS);
 	// save all timesteps, save all p and dp_dx and dp_dy
-	params.all = 1;
+	params.all = 0;
 	if(params.all){
 		params.snap_grad = 1;
 		params.SNAPSHOT = 1;

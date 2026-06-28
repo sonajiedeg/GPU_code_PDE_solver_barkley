@@ -13,7 +13,7 @@ class WaveEqn2D:
 
         self.nx, self.ny = nx, ny
         self.c = c
-        self.h, self.dt = 1, 1
+        self.h, self.dt = h, dt
         self.use_mur_abc = use_mur_abc
         self.alpha = self.c * self.dt / self.h
         self.alpha2 = self.alpha**2
@@ -43,10 +43,10 @@ class WaveEqn2D:
         if self.use_mur_abc:
             # Mur absorbing boundary conditions.
             kappa = (1 - self.alpha) / (1 + self.alpha) 
-            u[0, 0, 1:nx-1] = u[0, 1, 1:nx-1]
-            # u[0, 0, 1:nx-1] = (u[1, 1, 1:nx-1] - kappa * ( u[0, 1, 1:nx-1] - u[1, 0, 1:nx-1]) )
-            u[0, ny-1, 1:nx-1] = u[0, ny-2, 1:nx-1]
-            # u[0, ny-1, 1:nx-1] = (u[1, ny-2, 1:nx-1] + kappa * ( u[1, ny-1, 1:nx-1] - u[0, ny-2, 1:nx-1]) )
+            # u[0, 0, 1:nx-1] = u[0, 1, 1:nx-1]
+            u[0, 0, 1:nx-1] = (u[1, 1, 1:nx-1] - kappa * ( u[0, 1, 1:nx-1] - u[1, 0, 1:nx-1]) )
+            # u[0, ny-1, 1:nx-1] = u[0, ny-2, 1:nx-1]
+            u[0, ny-1, 1:nx-1] = (u[1, ny-2, 1:nx-1] + kappa * ( u[1, ny-1, 1:nx-1] - u[0, ny-2, 1:nx-1]) )
             u[0, 1:ny-1, 0] = (u[1, 1:ny-1, 1] - kappa * ( u[0, 1:ny-1, 1] - u[1, 1:ny-1, 0]) )
-            u[0, 1:ny-1, nx-1] = u[0, 1:ny-1, nx-2]
-            # u[0, 1:ny-1, nx-1] = (u[1, 1:ny-1, nx-2] + kappa * ( u[1, 1:ny-1, nx-1] - u[0, 1:ny-1, nx-2]) )
+            # u[0, 1:ny-1, nx-1] = u[0, 1:ny-1, nx-2]
+            u[0, 1:ny-1, nx-1] = (u[1, 1:ny-1, nx-2] + kappa * ( u[1, 1:ny-1, nx-1] - u[0, 1:ny-1, nx-2]) )

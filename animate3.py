@@ -27,8 +27,8 @@ POINTS_TO_PLOT = [(128, 128), (128, 138), (64, 128)]
 
 # --- 2. DATA LOADING ---
 print("Loading data...")
-# data = np.fromfile("u_snap.bin", dtype=np.float32)
-data = np.fromfile("u_snap_grady.bin", dtype=np.float32)
+data = np.fromfile("u_snap.bin", dtype=np.float32)
+# data = np.fromfile("u_snap_grady.bin", dtype=np.float32)
 
 num_frames = data.size // (res * res)
 data = data.reshape((num_frames, res, res))
@@ -48,8 +48,9 @@ if RUN_MODE == 'heatmap_anim':
 
     heatmap = ax.imshow(
         data[0],
-        cmap='winter',
-        interpolation='nearest'
+        cmap='coolwarm',
+        # cmap='winter',
+        interpolation='nearest',
     )
     
     ax.invert_yaxis()
@@ -59,7 +60,9 @@ if RUN_MODE == 'heatmap_anim':
 
     def update_heatmap(frame):
         heatmap.set_data(data[frame])
-        heatmap.set_clim(np.min(data[frame]), np.max(data[frame]))
+        # heatmap.set_clim(np.min(data[frame]), np.max(data[frame]))
+        heatmap.set_clim(0, np.max(data[frame]))
+        # heatmap.set_clim(np.min(data[frame]), np.max(data[frame]))
         # ax.set_title(f"Simulation time {(frame*dt*STEP):.4f}, frame {frame}", fontsize=20)
         ax.set_title(f"frame {frame}", fontsize=20)
         return [heatmap]

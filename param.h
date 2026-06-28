@@ -28,4 +28,5 @@ struct SimParamStruct{
 	float omega_dt;
 	float sin_coeff;
 	float Z;
+	float kappa;
 };

@@ -27,8 +27,8 @@ POINTS_TO_PLOT = [(128, 128), (128, 138), (64, 128)]
 
 # --- 2. DATA LOADING ---
 print("Loading data...")
-data = np.fromfile("u_snap.bin", dtype=np.float32)
-# data = np.fromfile("u_snap_grady.bin", dtype=np.float32)
+# data = np.fromfile("u_snap.bin", dtype=np.float32)
+data = np.fromfile("u_snap_grady.bin", dtype=np.float32)
 
 num_frames = data.size // (res * res)
 data = data.reshape((num_frames, res, res))

@@ -224,8 +224,19 @@ void print_runtimes(std::chrono::steady_clock::time_point begin, std::chrono::st
     //measure at this iteration
     int iteration_limit_per_2 = params.ITERATIONS / 2;
     int average_iteration_runtime;
+    int total_runtime;
     average_iteration_runtime = std::chrono::duration_cast<std::chrono::microseconds> (end - begin).count() / 2 / iteration_limit_per_2;
-    cout << "average iteration runtime (count one of 2 iteration per kernel) : " << average_iteration_runtime << "[us]" << endl;
+    cout << "average iteration runtime (count one of 2 iteration per kernel loop) : " << average_iteration_runtime << "[us]" << endl;
     average_iteration_runtime = std::chrono::duration_cast<std::chrono::nanoseconds> (end - begin).count() / 2 / iteration_limit_per_2;
-    cout << "average iteration runtime (count one of 2 iteration per kernel) : " << average_iteration_runtime << "[ns]" << endl;
+    cout << "average iteration runtime (count one of 2 iteration per kernel loop) : " << average_iteration_runtime << "[ns]" << endl;
+
+    total_runtime = std::chrono::duration_cast<std::chrono::seconds> (end - begin).count();
+	cout << "total runtime : " << total_runtime << "[s]" << endl; 
+	total_runtime = std::chrono::duration_cast<std::chrono::milliseconds> (end - begin).count();
+	cout << "total runtime : " << total_runtime << "[ms]" << endl; 
+	total_runtime = std::chrono::duration_cast<std::chrono::microseconds> (end - begin).count();
+	cout << "total runtime : " << total_runtime << "[us]" << endl; 
+	
+	cout << "number of timesteps : " << params.ITERATIONS << endl;
+
 }

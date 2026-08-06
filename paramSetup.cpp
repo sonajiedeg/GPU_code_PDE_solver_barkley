@@ -11,7 +11,7 @@ SimParamStruct paramSetup(){
 	params.dx = 1e-3 / 256;
 	// CFL criterion with Courant number C_CFL = smalld by 256
 	// params.dt = 5.859374999999999e-9 / 4;
-	params.sigma = 0.45; // CFL
+	params.sigma = 0.225; // CFL
 	params.dt = params.sigma * params.dx / params.c;
 
 	// for 9 point stencil
@@ -45,8 +45,8 @@ SimParamStruct paramSetup(){
 	*/
 	float t = lInWavelenght / params.f; // i want to set it so it just reaches the other wall
 	t = 2.5e-6;
-	params.ITERATIONS = round( t / params.dt );
-    // params.ITERATIONS = round( t / params.dt / 2 ) * 2;
+	// params.ITERATIONS = round( t / params.dt );
+    params.ITERATIONS = round( t / params.dt / 2 ) * 2;
 	// params.ITERATIONS = round( t / params.dt / 2 ) * 2 * 3;
 	params.tsc = 100;
 	params.SNAPSHOT = 1;

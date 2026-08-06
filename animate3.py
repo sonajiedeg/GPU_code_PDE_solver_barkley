@@ -1,3 +1,4 @@
+import os
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
@@ -8,12 +9,25 @@ FONT = 18
 res = 256
 dt = 5.859374999999999e-09 / 4
 STEP = 500.0
+p0 = 101325 # Pa
 
 # Choose your mode: 'heatmap_anim', 'line_anim', 'line_static', or 'point_static'
 RUN_MODE = 'heatmap_anim'
 # RUN_MODE = 'line_anim'
+# RUN_MODE = 'line_static'
 # RUN_MODE = 'point_static'
-# RUN_MODE = 'point_static'
+
+# choose .mp4 name
+ani_name = 'hmap'
+
+# choose file to read
+fname = 'u_snap.bin'
+# fname = 'u_snap_gradx.bin'
+# fname = 'u_snap_grady.bin'
+
+# down sampling settings
+ds = True
+num_frames_ds_target = 100
 
 # Parameters for the 1D Spatial features (line modes)
 TARGET_AXIS = 'row'     # Choose 'row' or 'col'
@@ -27,25 +41,66 @@ POINTS_TO_PLOT = [(128, 128), (128, 138), (64, 128)]
 
 # --- 2. DATA LOADING ---
 print("Loading data...")
-data = np.fromfile("u_snap.bin", dtype=np.float32)
-# data = np.fromfile("u_snap_grady.bin", dtype=np.float32)
+if ds:
+    file_size = os.path.getsize(fname)
+    frame_bytes = res * res * 4
+    num_frames = file_size // frame_bytes
+    # print('------------------------->', file_size // frame_bytes == data.size // (res * res))
+    # num_frames = data.size // (res * res)
+    # data = data.reshape((num_frames, res, res))
+    step = num_frames // num_frames_ds_target
+    selected_frames = []
 
-num_frames = data.size // (res * res)
-data = data.reshape((num_frames, res, res))
+    with open(fname, "rb") as f:
+        for frame_idx in range(num_frames):
+            if frame_idx % step == 0:
+                # Read and parse only the required frame
+                chunk = f.read(res * res * 4)
+                frame = np.frombuffer(chunk, dtype=np.float32).reshape(res, res)
+                selected_frames.append(frame)
+            else:
+                # Skip 24 frames instantly without loading data into RAM
+                f.seek(res * res * 4, 1)
+    num_frames_ds = len(selected_frames)
+    step = num_frames // num_frames_ds
+    print("num_frames:", num_frames)
+    print('num_frames_ds_target:', num_frames_ds_target)
+    print('num_frames_ds:', num_frames_ds)
+    print('len(selected_frames):',len(selected_frames) )
+    data = np.array(selected_frames).reshape((num_frames_ds, res, res))
+    print("data size:", data.size)
+    print("expected per frame:", res*res)
+    print('step:', step)
+    num_frames = num_frames_ds
+else:
+    data = np.fromfile(fname, dtype=np.float32)
+    num_frames = data.size // (res * res)
+    data = data.reshape((num_frames, res, res))
+    print("num_frames:", num_frames)
+    print("data size:", data.size)
+    print("expected per frame:", res*res)
 
-print("data size:", data.size)
-print("expected per frame:", res*res)
-print("num_frames:", num_frames)
 
+# add ambient pressure
+data = data + p0  
 
+print("-------------------------------->",data[0][0][0])
 # --- 3. MODES ---
+def all_same(items):
+    i = []
+    for x in items:
+        for y in x:
+            for z in y:
+                i.append( z == items[0][0][0] )
+    return all( i )
+
 
 if RUN_MODE == 'heatmap_anim':
     # ---------------------------------------------------------
     # 2D Heatmap Animation
     # ---------------------------------------------------------
     fig, ax = plt.subplots(figsize=(9, 6))
-
+    print('data[?_1] = data[?_2]:', all_same(data) )
     heatmap = ax.imshow(
         data[0],
         cmap='coolwarm',
@@ -60,15 +115,17 @@ if RUN_MODE == 'heatmap_anim':
 
     def update_heatmap(frame):
         heatmap.set_data(data[frame])
+        # heatmap.set_clim(np.min(data), np.max(data))
+        heatmap.set_clim(0, 200000)
         # heatmap.set_clim(np.min(data[frame]), np.max(data[frame]))
-        heatmap.set_clim(0, np.max(data[frame]))
+        # heatmap.set_clim(0, np.max(data[frame]))
         # heatmap.set_clim(np.min(data[frame]), np.max(data[frame]))
         # ax.set_title(f"Simulation time {(frame*dt*STEP):.4f}, frame {frame}", fontsize=20)
         ax.set_title(f"frame {frame}", fontsize=20)
         return [heatmap]
 
-    ani = FuncAnimation(fig, update_heatmap, frames=num_frames, interval=20)
-    ani.save("s5point.mp4", writer="ffmpeg", fps=36, dpi=200)
+    ani = FuncAnimation(fig, update_heatmap, frames=num_frames, interval=180)
+    ani.save(ani_name + ".mp4", writer="ffmpeg", fps=36, dpi=200)
     plt.show()
 
 elif RUN_MODE == 'line_anim':

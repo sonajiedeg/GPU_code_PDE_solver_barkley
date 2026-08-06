@@ -48,7 +48,7 @@ void text_to_array(float* u, float* v) {
     //const unsigned int s = 10000;
     fstream newfile;
 
-    newfile.open("u_dt.txt", ios::in); //open a file to perform read operation using file object
+    newfile.open("p.txt", ios::in); //open a file to perform read operation using file object
     if (newfile.is_open())  //checking whether the file is open
     {
         string tp;

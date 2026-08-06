@@ -24,17 +24,17 @@ static __device__ __forceinline__ void laplace_grad(float* r_un, int within_sims
     {
         float r_L = 0;
 		// Patra-Karttunen (mabey try Oono-Puri)
-        r_L += -4 * lap_p[0];
+        r_L += -20 * lap_p[0];
 
 		float n = lap_n[0];
 		float s = lap_s[0];
 		float e = lap_p[+1];
 		float w = lap_p[-1];
 
-		r_L += 1 * e;
-        r_L += 1 * w;
-        r_L += 1 * s;
-        r_L += 1 * n;
+		r_L += 4 * e;
+        r_L += 4 * w;
+        r_L += 4 * s;
+        r_L += 4 * n;
 
 		/*
         r_L += 1 * lap_p[+1];
@@ -42,12 +42,12 @@ static __device__ __forceinline__ void laplace_grad(float* r_un, int within_sims
         r_L += 1 * lap_s[0];
         r_L += 1 * lap_n[0];
 		*/
-		/*
+		
         r_L += 1 * lap_s[+1];
         r_L += 1 * lap_s[-1];
         r_L += 1 * lap_n[+1];
         r_L += 1 * lap_n[-1];
-		*/
+		
 		// save gradients
  		int size = 256 * 256;
 		g_snap_gradx[ ThreadOffset + snapCount * size ]	= ( e - w ) / 2;
@@ -95,7 +95,6 @@ __global__ void iterate_snap_grad(float* g_ua, float* g_ub, float* g_v, int res,
     grid_group whole_grid = this_grid();
     int within_simspace_inner = i < res - 1 && j < res - 1 && i > 0 && j > 0;
 
-
     if (i < res && j < res)            // INTO REG
     {
         int ThreadOffset = i + j * res; // 1 INT FMA (FMA = Fused Multiple Add, az a+b*c műveletet 1 órajel alatt megcsinálja)       // INTO REG, allready done
@@ -132,13 +131,14 @@ __global__ void iterate_snap_grad(float* g_ua, float* g_ub, float* g_v, int res,
 		int size = res * res;
 
         // ----- Load Data -----
-        copy_g_to_r(g_ua, g_v, &r_ua, &r_va, ThreadOffset);
+        copy_g_to_r(g_ua, g_ub, &r_ua, &r_ub, ThreadOffset);
         //whole_grid.sync();
 
 		// ----- save u_n{n-1} for BC at u_{n+1} 1-----
 		float r_uc1 = 0;
 		float r_uc2 = 0;
 		r_uc1 = r_ub;
+		r_uc2 = r_ub;
 
         // ----- Iteration step 1 -----
         iterate_without_laplace(r_ua, &r_ub, r_uc2);
@@ -382,7 +382,8 @@ static __device__ __forceinline__ void copy_r_to_g_and_no_flux_int_friend(float*
     // ----- No Flux BC -----
     // ============================== S
 	// neumann
-	if (j_eq_1) { g_u2[threadoffset_m_res] = r_u2 + params.bck * ( r_u2 - 2 * r_u1 + r_u0 ); }
+	// if (j_eq_1) { g_u2[threadoffset_m_res] = r_u2 + params.bck * ( r_u2 - 2 * r_u1 + r_u0 ); }
+	if (j_eq_1) { g_u2[threadoffset_m_res] = r_u2; }
 	// sommerfeld/impedance
 	// if (j_eq_1) { float r_u_tmp = *r_u1_bc + dt*Z*c/dx * ( r_u1 - *r_u1_bc ); g_u2[threadoffset_m_res] = r_u_tmp; *r_u1_bc = r_u_tmp; } // temp 1st order impl. TODO: 2nd order
 
@@ -399,33 +400,52 @@ static __device__ __forceinline__ void copy_r_to_g_and_no_flux_int_friend(float*
 	*/
 	// mur's first order 
 
-	if (i_eq_1) {
+	/*
+    if (i_eq_1) {
 		float r_u_tmp = r_u1 + ( params.c * params.dt - params.dx ) / ( params.c * params.dt + params.dx ) * ( r_u2 - *r_u1_bc );
 		g_u2[threadoffset_m_one] = r_u_tmp;
 		*r_u1_bc = r_u_tmp;
 	} // temp 1st order impl. TODO: 2nd order
+	*/
 	
 	// dirichlet
 	// if (i_eq_1) { g_u2[threadoffset_m_one] = 0; }
 	// neumann
-	// if (i_eq_1) { g_u2[threadoffset_m_one] = r_u2 + 1/2/K * ( r_u2 - 2 * r_u1 + r_u0 ); }
+    // if (i_eq_1) { g_u2[threadoffset_m_one] = r_u2 + 1/2/K * ( r_u2 - 2 * r_u1 + r_u0 ); }
+	// if (i_eq_1) { g_u2[threadoffset_m_one] = r_u2 + params.bck * ( r_u2 - 2 * r_u1 + r_u0 ); }
+	if (i_eq_1) { g_u2[threadoffset_m_one] = r_u2; }
+	
     // ============================== E
     //e transducer
+	/*
     if (i_eq_res_m_2) {
 		// if ( 64 <= j && j <= 192 ) { g_u2[threadoffset_p_one] = r_u2 + params.sin_coeff * sinf( params.omega_dt * k ) - params.bck * ( r_u2 - 2 * r_u1 + r_u0 ); }
 		if ( 64 <= j && j <= 192 ) { g_u2[threadoffset_p_one] = r_u2 + params.dt_rho_d_omega2 * sinf( params.omega_dt * k ); }
 		else { g_u2[threadoffset_p_one] = r_u2 - params.bck * ( r_u2 - 2 * r_u1 + r_u0 ); }
 	}
+	*/
+	// neumann
+	if (i_eq_res_m_2) { g_u2[threadoffset_p_one] = r_u2; }
+	// dirichlet
+	// if (i_eq_res_m_2) { g_u2[threadoffset_p_one] = 0; }
     // ============================== N
-    if (j_eq_res_m_2) { g_u2[threadoffset_p_res] = r_u2 - params.bck * ( r_u2 - 2 * r_u1 + r_u0 ); }
+	// neumann
+    // if (j_eq_res_m_2) { g_u2[threadoffset_p_res] = r_u2 - params.bck * ( r_u2 - 2 * r_u1 + r_u0 ); }
+    // if (j_eq_res_m_2) { g_u2[threadoffset_p_res] = r_u2; }
+	// dirichlet
+    if (j_eq_res_m_2) { g_u2[threadoffset_p_res] = 0; }
 	// if (j_eq_res_m_2) { float r_u_tmp = *r_u1_bc - dt*Z*c/dx * ( r_u1 - *r_u1_bc ); g_u2[threadoffset_p_res] = r_u_tmp; *r_u1_bc = r_u_tmp; } // temp 1st order impl. TODO: 2nd order
 
     //sw
-    if (i_eq_1 && j_eq_1) { g_u2[threadoffset_m_res - 1] = r_u2 + params.bck * ( r_u2 - 2 * r_u1 + r_u0 ); }
+	// if (i_eq_1 && j_eq_1) { g_u2[threadoffset_m_res - 1] = r_u2 + params.bck * ( r_u2 - 2 * r_u1 + r_u0 ); }
+    if (i_eq_1 && j_eq_1) { g_u2[threadoffset_m_res - 1] = r_u2; }
     //se
-    if (i_eq_res_m_2 && j_eq_1) { g_u2[threadoffset_m_res + 1] = r_u2 - params.bck * ( r_u2 - 2 * r_u1 + r_u0 ); }
+	// if (i_eq_res_m_2 && j_eq_1) { g_u2[threadoffset_m_res + 1] = r_u2 - params.bck * ( r_u2 - 2 * r_u1 + r_u0 ); }
+    if (i_eq_res_m_2 && j_eq_1) { g_u2[threadoffset_m_res + 1] = r_u2; }
     //nw
-    if (i_eq_1 && j_eq_res_m_2) { g_u2[threadoffset_p_res - 1] = r_u2 + params.bck * ( r_u2 - 2 * r_u1 + r_u0 ); }
+    // if (i_eq_1 && j_eq_res_m_2) { g_u2[threadoffset_p_res - 1] = r_u2 + params.bck * ( r_u2 - 2 * r_u1 + r_u0 ); }
+    if (i_eq_1 && j_eq_res_m_2) { g_u2[threadoffset_p_res - 1] = r_u2; }
     //ne
-    if (i_eq_res_m_2 && j_eq_res_m_2) { g_u2[threadoffset_p_res + 1] = r_u2 - params.bck * ( r_u2 - 2 * r_u1 + r_u0 ); }
+    // if (i_eq_res_m_2 && j_eq_res_m_2) { g_u2[threadoffset_p_res + 1] = r_u2 - params.bck * ( r_u2 - 2 * r_u1 + r_u0 ); }
+    if (i_eq_res_m_2 && j_eq_res_m_2) { g_u2[threadoffset_p_res + 1] = r_u2; }
 }

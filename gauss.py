@@ -11,9 +11,11 @@ L = 1e-3 # m
 sigx = L/7 # m
 sigy = L/5 # m
 pa = 1e5 # Pa
+# p0 = 101325 # Pa
+p0 = 0 # Pa
 
 def ic(x,y):
-    return pa*np.exp(-1/2*( (x/sigx)**2 + (y/sigy)**2 ))
+    return p0 + pa*np.exp(-1/2*( (x/sigx)**2 + (y/sigy)**2 ))
 
 dx = L / res
 xarr = np.linspace(-(L+dx)/2, (L+dx)/2, res)
@@ -24,7 +26,7 @@ for i, x in enumerate(xarr):
 
 # im = plt.imshow(p, cmap='cool')
 im = plt.imshow(p, cmap='coolwarm')
-cbar = plt.colorbar(im)
+cbar = plt.colorbar(im, boundaries=np.linspace(0,200000,5))
 plt.gca().invert_yaxis()
 plt.show()
 

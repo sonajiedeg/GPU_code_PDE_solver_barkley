@@ -144,7 +144,7 @@ cudaError_t iterate_prep(float* u, float* v, float* u_sol, unsigned int size, in
 		if ( params.all){
 			init(u, v, &dev_2_u, &dev_ua, &dev_ub, &dev_v, size, DEVICE_ID, &dev_snap, params, &dev_snap_gradx, &dev_snap_grady); CUERR;
 		}
-		if ( params.SNAPSHOT ){
+		else if ( params.SNAPSHOT ){
 			init(u, v, &dev_2_u, &dev_ua, &dev_ub, &dev_v, size, DEVICE_ID, &dev_snap, params); CUERR;
 		}
 		else{
@@ -152,6 +152,7 @@ cudaError_t iterate_prep(float* u, float* v, float* u_sol, unsigned int size, in
 		}
         cudaDeviceSynchronize();
         // ---------- Launch a kernel on the GPU with one thread for each element. ----------
+
         begin = std::chrono::steady_clock::now();
 
         if ( params.all ){ cudaLaunchCooperativeKernel((void*)iterate_snap_grad, dimGrid, dimBlock, kernelArgs); }
@@ -182,7 +183,6 @@ cudaError_t iterate_prep(float* u, float* v, float* u_sol, unsigned int size, in
 		}
 		if ( params.SNAPSHOT ) { cudaMemcpy(uSnap, dev_snap, size * sizeof(float) * int( params.tsc ), cudaMemcpyDeviceToHost); CUERR; }
 
-		
         cudaDeviceSynchronize(); CUERR;
 
         // array_to_text(u, res);

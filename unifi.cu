@@ -35,9 +35,9 @@ cudaError_t init(float* u, float* v, float** dev_2_u, float** dev_ua, float** de
 
     cudaStatus = cudaMalloc((void**)dev_v, size * sizeof(float)); CUERR;
 
-    // cudaStatus = cudaMemcpy(*dev_ua, u, size * sizeof(float), cudaMemcpyHostToDevice); CUERR;
+    cudaStatus = cudaMemcpy(*dev_ua, u, size * sizeof(float), cudaMemcpyHostToDevice); CUERR;
 
-    // cudaStatus = cudaMemcpy(*dev_ub, u, size * sizeof(float), cudaMemcpyHostToDevice); CUERR;
+    cudaStatus = cudaMemcpy(*dev_ub, u, size * sizeof(float), cudaMemcpyHostToDevice); CUERR;
 
     // cudaStatus = cudaMemcpy(*dev_v, v, size * sizeof(float), cudaMemcpyHostToDevice); CUERR;
 	// allocate mem for snapshots
@@ -46,6 +46,7 @@ cudaError_t init(float* u, float* v, float** dev_2_u, float** dev_ua, float** de
     cudaStatus = cudaMalloc((void**)dev_snap_grady, size * sizeof(float) * ( int( params.tsc ) ) ); CUERR;
 
 	cudaStatus = cudaGetLastError();
+
     return cudaStatus;  // Successful allocation
 }
 

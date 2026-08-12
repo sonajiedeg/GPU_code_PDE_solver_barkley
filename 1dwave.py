@@ -8,7 +8,7 @@ plt.ion()
 rho = 1e3 # density
 c = 1500 # speed of sound in water
 f = 20e3 # transducer frequency
-d = 10e-6 # transducer oscillation amplitude in [m]
+d = 1e-6 # transducer oscillation amplitude in [m]
 omega = 2 * 3.14159265359 * f
 # ----- simulation parameters -----
 it = 50000 # iteration step number
@@ -17,7 +17,7 @@ size = res**2
 dx = (c/f) * 3 / 256 # spatial discretization length
 sigma = .9 # Courant number
 dt = sigma * dx / c # time discretization, with CFL criterion
-Z = .8 # impedance BC parameter
+Z = 1 # impedance BC parameter
 '''
     Z = 1: Sommerfeld, no reflection
     Z --> 0: Dirichlet, full reflection, phase inverting bc
@@ -45,7 +45,7 @@ line, = ax.plot(x, ua)
 
 ax.set_xlabel("x")
 ax.set_ylabel("u")
-ax.set_ylim(-1e7, 1e7)   # adjust if needed
+ax.set_ylim(-1e4, 1e4)   # adjust if needed
 
 # one step with first order approx
 k = 0
@@ -71,7 +71,15 @@ for k in range( 1, int(it), 2 ):
         ub[i+1] = 2 * ua[i+1] - uc[i+1] + dt**2 * c**2 / dx**2 * ( ua[i+2] - 2 * ua[i+1] + ua[i] )
     # bc 
     # transducer
-    ub[res+1] = ub[res] + dx * rho * d * omega**2 * np.sin( omega * dt * ( k ) ) - dx**2 / 2 / c**2 / dt**2 * ( ub[res] - 2 * ua[res] + uc[res] )
+    # ub[res+1] = ub[res] + dx * rho * d * omega**2 * np.sin( omega * dt * ( k ) ) - dx**2 / 2 / c**2 / dt**2 * ( ub[res] - 2 * ua[res] + uc[res] )
+    d33 = 289e-12
+    V0 = 100
+    lp = 0.005
+    # ub[res+1] = ub[res] + dx * rho * d33 * V0 / lp * omega**2 * np.sin( omega * dt * ( k ) ) - dx**2 / 2 / c**2 / dt**2 * ( ub[res] - 2 * ua[res] + uc[res] )
+    # Calculate physical acceleration of the piezo face
+    a_n_b = -d33 * V0 * omega**2 * np.sin(omega * dt * k)
+    # Central difference ghost node update
+    ub[res+1] = ub[res-1] - 2 * dx * rho * a_n_b
     # other end: wall or symmetry or VOID
     # Dirichlet = reflect with inverse phase
     # ub[0] = 0
@@ -91,7 +99,17 @@ for k in range( 1, int(it), 2 ):
         ua[i+1] = 2 * ub[i+1] - uc[i+1] + dt**2 * c**2 / dx**2 * ( ub[i+2] - 2 * ub[i+1] + ub[i] )
     # bc 
     # transducer
-    ua[res+1] = ua[res] + dx * rho * d * omega**2 * np.sin( omega * dt * ( k + 1 ) ) - dx**2 / 2 / c**2 / dt**2 * ( ua[res] - 2 * ub[res] + uc[res] )
+    # ua[res+1] = ua[res] + dx * rho * d * omega**2 * np.sin( omega * dt * ( k + 1 ) ) - dx**2 / 2 / c**2 / dt**2 * ( ua[res] - 2 * ub[res] + uc[res] )
+    d33 = 289e-12
+    V0 = 100
+    lp = 0.005
+    # ua[res+1] = ua[res] + dx * rho * d33 * V0 / lp * omega**2 * np.sin( omega * dt * ( k + 1 ) ) - dx**2 / 2 / c**2 / dt**2 * ( ua[res] - 2 * ub[res] + uc[res] )
+    # Calculate physical acceleration of the piezo face
+    a_n_a = -d33 * V0 * omega**2 * np.sin(omega * dt * (k + 1))
+    
+    # Central difference ghost node update
+    ua[res+1] = ua[res-1] - 2 * dx * rho * a_n_a
+    # ua[res+1] = ua[res] + dx * rho * d * omega**2 * np.sin( omega * dt * ( k + 1 ) ) - dx**2 / 2 / c**2 / dt**2 * ( ua[res] - 2 * ub[res] + uc[res] )
     # other end: wall or symmetry or VOID
     # Dirichlet = reflect with inverse phase
     # ua[0] = 0

@@ -1,5 +1,6 @@
 #include "cuda_runtime.h"
 #include "param.h"
+#include "bc.h"
 
 
 static __device__ __forceinline__ void copy_r_to_g_and_no_flux(float* g_ub, float r_ua, float r_ub, float r_uc, int res, int i, int j, int ThreadOffset);
@@ -49,9 +50,10 @@ static __device__ __forceinline__ void laplace_grad(float* r_un, int within_sims
         r_L += 1 * lap_n[-1];
 		
 		// save gradients
- 		int size = 256 * 256;
-		g_snap_gradx[ ThreadOffset + snapCount * size ]	= ( e - w ) / 2;
-		g_snap_grady[ ThreadOffset + snapCount * size ]	= ( n - s ) / 2;
+ 		// int size = 256 * 256; // for REMOTE
+ 		int size = 128 * 128; // for LOCAL
+		g_snap_gradx[ ThreadOffset + snapCount * size ]	= ( e - w ) * 0.5;
+		g_snap_grady[ ThreadOffset + snapCount * size ]	= ( n - s ) * 0.5;
 		// g_snap_gradx[ ThreadOffset + snapCount * size ]	= ( lap_p[+1] - lap_p[-1] ) / 2;
 	    // g_snap_grady[ ThreadOffset + snapCount * size ]	= ( lap_n[0] - lap_s[0] ) / 2;
 
@@ -129,7 +131,7 @@ __global__ void iterate_snap_grad(float* g_ua, float* g_ub, float* g_v, int res,
 		// ----- Counter for Snapshots -----
 		int countSnap = 0;
 		int size = res * res;
-
+		if(i==0&&j==0){ PASS }
         // ----- Load Data -----
         copy_g_to_r(g_ua, g_ub, &r_ua, &r_ub, ThreadOffset);
         //whole_grid.sync();
@@ -160,7 +162,12 @@ __global__ void iterate_snap_grad(float* g_ua, float* g_ub, float* g_v, int res,
             // ----- "Unload" Data And No Flux Bc 1 -----
             copy_r_to_g_and_no_flux_int_friend(g_ub, r_ub, r_ua, r_uc1, &r_u_bc, res, i, j, ThreadOffset, j_eq_1, j_eq_res_m_2, i_eq_1, i_eq_res_m_2, threadoffset_p_one, threadoffset_m_one, threadoffset_p_res, threadoffset_m_res, within_simspace_inner, k, params);
 			// ----- save snapshot to global memory -----
-			if ( (k*2) % params.SNAP_MODULUS == 0 ){ g_snap[ThreadOffset + ( countSnap++ ) * size] = r_ua; }
+			if ( (k*2) % params.SNAP_MODULUS == 0 ){
+				if(within_simspace_inner){
+					g_snap[ThreadOffset + ( countSnap++ ) * size] = r_ub;
+				}
+				else{ g_snap[ThreadOffset + ( countSnap++ ) * size] = g_ua[ThreadOffset]; }
+			}
 
             whole_grid.sync();
             
@@ -179,7 +186,12 @@ __global__ void iterate_snap_grad(float* g_ua, float* g_ub, float* g_v, int res,
             // ----- "Unload" Data And No Flux Bc 2 -----
             copy_r_to_g_and_no_flux_int_friend(g_ua, r_ua, r_ub, r_uc2, &r_u_bc, res, i, j, ThreadOffset, j_eq_1, j_eq_res_m_2, i_eq_1, i_eq_res_m_2, threadoffset_p_one, threadoffset_m_one, threadoffset_p_res, threadoffset_m_res, within_simspace_inner, k+1, params);
 			// ----- save snapshot to global memory -----
-			if ( (k*2+1) % params.SNAP_MODULUS == 0 ){ g_snap[ThreadOffset + ( countSnap++ ) * size] = r_ua; }
+			if ( (k*2+1) % params.SNAP_MODULUS == 0 ){
+				if(within_simspace_inner){
+					g_snap[ThreadOffset + ( countSnap++ ) * size] = r_ua;
+				}
+				else{ g_snap[ThreadOffset + ( countSnap++ ) * size] = g_ua[ThreadOffset]; }
+			}
         }
     }
 }
@@ -280,7 +292,7 @@ __global__ void iterate_snap(float* g_ua, float* g_ub, float* g_v, int res, int 
 }
 
 __global__ void iterate(float* g_ua, float* g_ub, float* g_v, int res, int iteration_limit_per_2, SimParamStruct params)
-	{
+{
     int i = threadIdx.x + blockIdx.x * blockDim.x;
     int j = threadIdx.y + blockIdx.y * blockDim.y;
     grid_group whole_grid = this_grid();
@@ -383,20 +395,42 @@ static __device__ __forceinline__ void copy_r_to_g_and_no_flux_int_friend(float*
     // ============================== S
 	// neumann
 	// if (j_eq_1) { g_u2[threadoffset_m_res] = r_u2 + params.bck * ( r_u2 - 2 * r_u1 + r_u0 ); }
-	if (j_eq_1) { g_u2[threadoffset_m_res] = r_u2; }
+	// if (j_eq_1) { g_u2[threadoffset_m_res] = r_u2; }
 	// sommerfeld/impedance
 	// if (j_eq_1) { float r_u_tmp = *r_u1_bc + dt*Z*c/dx * ( r_u1 - *r_u1_bc ); g_u2[threadoffset_m_res] = r_u_tmp; *r_u1_bc = r_u_tmp; } // temp 1st order impl. TODO: 2nd order
-
+	if (j_eq_1) {
+		// float r_u_tmp = *r_u1_bc + params.dt * params.c / params.dx * ( r_u1 - *r_u1_bc ); // somewhat worked
+		float r_u_tmp = *r_u1_bc / ( 1 + params.dt * params.c / params.dx ) + params.dt * params.c / params.dx * ( r_u2 ) / ( 1 + params.dt * params.c / params.dx );
+		g_u2[threadoffset_m_res] = r_u_tmp;
+		*r_u1_bc = r_u_tmp;
+	}
     // ============================== W
     // impedance/sommerfeld
 	// if (i_eq_1) { float r_u_tmp = *r_u1_bc + params.dt*params.Z*params.c/params.dx * ( r_u1 - *r_u1_bc ); g_u2[threadoffset_m_one] = r_u_tmp; *r_u1_bc = r_u_tmp; } // temp 1st order impl. TODO: 2nd order
 	// u[0, 1:ny-1, 0] = (u[1, 1:ny-1, 1] - kappa * ( u[0, 1:ny-1, 1] - u[1, 1:ny-1, 0]) )
+		
+    // u2[0] = u1[0] + dt * Z * c / dx * ( u1[1] - u1[0] )
 	/*
 	if (i_eq_1) {
-		float r_u_tmp = r_u1 - params.kappa * ( r_u2 - *r_u1_bc );
+		// float r_u_tmp = r_u1 - params.kappa * ( r_u2 - *r_u1_bc );
+		// float r_u_tmp = *r_u1_bc + params.dt * params.c / params.dx * ( r_u1 - *r_u1_bc ); // somewhat worked
+		float r_u_tmp = *r_u1_bc / ( 1 + params.dt * params.c / params.dx ) + params.dt * params.c / params.dx * ( r_u2 ) / ( 1 + params.dt * params.c / params.dx );
 		g_u2[threadoffset_m_one] = r_u_tmp;
 		*r_u1_bc = r_u_tmp;
 	} // temp 1st order impl. TODO: 2nd order
+	*/
+	/*
+	if (i_eq_1) {
+		// if ( 64 <= j && j <= 192 ) { g_u2[threadoffset_p_one] = r_u2 + params.sin_coeff * sinf( params.omega_dt * k ) - params.bck * ( r_u2 - 2 * r_u1 + r_u0 ); }
+		if ( 32 <= j && j <= 96 ) { g_u2[threadoffset_m_one] = r_u2 + (1 - 1/32*abs(j-64)) * params.dx_rho_d_omega2 * sinf( params.omega_dt * k + 1.5707963267948966192313216916398); }
+		// else { g_u2[threadoffset_p_one] = r_u2 - params.bck * ( r_u2 - 2 * r_u1 + r_u0 ); } // idk, mabey 2nd order neumann
+		else {
+			// float r_u_tmp = *r_u1_bc + params.dt * params.c / params.dx * ( r_u1 - *r_u1_bc ); // somewhat worked
+			float r_u_tmp = *r_u1_bc * params.som1 + params.som2 * ( r_u2 );
+			g_u2[threadoffset_m_one] = r_u_tmp;
+			*r_u1_bc = r_u_tmp;
+		} // sommerfeld
+	}
 	*/
 	// mur's first order 
 
@@ -407,34 +441,75 @@ static __device__ __forceinline__ void copy_r_to_g_and_no_flux_int_friend(float*
 		*r_u1_bc = r_u_tmp;
 	} // temp 1st order impl. TODO: 2nd order
 	*/
-	
+	// Kalmi's transducer
+    if (i_eq_1) {
+		if ( 32 <= j && j <= 96 ) {
+			float r_u_tmp = params.bcC1 * (*r_u1_bc) + params.bcC3 * r_u2 + params.bcC2 * cosf( params.omega_dt * k + 0.7853981634);
+			g_u2[threadoffset_m_one] = r_u_tmp;
+			(*r_u1_bc) = r_u_tmp;
+		}
+		else { g_u2[threadoffset_m_one] = r_u2; }
+	}
 	// dirichlet
 	// if (i_eq_1) { g_u2[threadoffset_m_one] = 0; }
 	// neumann
     // if (i_eq_1) { g_u2[threadoffset_m_one] = r_u2 + 1/2/K * ( r_u2 - 2 * r_u1 + r_u0 ); }
 	// if (i_eq_1) { g_u2[threadoffset_m_one] = r_u2 + params.bck * ( r_u2 - 2 * r_u1 + r_u0 ); }
-	if (i_eq_1) { g_u2[threadoffset_m_one] = r_u2; }
+	// if (i_eq_1) { g_u2[threadoffset_m_one] = r_u2; }
 	
     // ============================== E
     //e transducer
-	/*
-    if (i_eq_res_m_2) {
-		// if ( 64 <= j && j <= 192 ) { g_u2[threadoffset_p_one] = r_u2 + params.sin_coeff * sinf( params.omega_dt * k ) - params.bck * ( r_u2 - 2 * r_u1 + r_u0 ); }
-		if ( 64 <= j && j <= 192 ) { g_u2[threadoffset_p_one] = r_u2 + params.dt_rho_d_omega2 * sinf( params.omega_dt * k ); }
-		else { g_u2[threadoffset_p_one] = r_u2 - params.bck * ( r_u2 - 2 * r_u1 + r_u0 ); }
-	}
-	*/
+#if eBC == 0
+	// dirichlet
+	if (i_eq_res_m_2) { g_u2[threadoffset_p_one] = 0; }
+#elif eBC == 1
 	// neumann
 	if (i_eq_res_m_2) { g_u2[threadoffset_p_one] = r_u2; }
-	// dirichlet
-	// if (i_eq_res_m_2) { g_u2[threadoffset_p_one] = 0; }
-    // ============================== N
+#elif eBC == 2
+	// sommerfeld
+	if (i_eq_res_m_2)
+	{
+		float r_u_tmp = *r_u1_bc * params.som1 + params.som2 * ( r_u2 );
+		g_u2[threadoffset_p_one] = r_u_tmp;
+		*r_u1_bc = r_u_tmp;
+	}
+#elif eBC == 3
+	// transducer and sommerfeld
+    if (i_eq_res_m_2) {
+		// if ( 64 <= j && j <= 192 ) { g_u2[threadoffset_p_one] = r_u2 + params.sin_coeff * sinf( params.omega_dt * k ) - params.bck * ( r_u2 - 2 * r_u1 + r_u0 ); }
+		if ( 32 <= j && j <= 96 ) { g_u2[threadoffset_p_one] = r_u2 + (1 - 1/32*abs(j-64)) * params.dx_rho_d_omega2 * sinf( params.omega_dt * k ); }
+		// else { g_u2[threadoffset_p_one] = r_u2 - params.bck * ( r_u2 - 2 * r_u1 + r_u0 ); } // idk, mabey 2nd order neumann
+		else {
+			// float r_u_tmp = *r_u1_bc + params.dt * params.c / params.dx * ( r_u1 - *r_u1_bc ); // somewhat worked
+			//float r_u_tmp = *r_u1_bc / ( 1 + params.dt * params.c / params.dx ) + params.dt * params.c / params.dx * ( r_u2 ) / ( 1 + params.dt * params.c / params.dx );
+			float r_u_tmp = *r_u1_bc * params.som1 + params.som2 * ( r_u2 );
+			g_u2[threadoffset_p_one] = r_u_tmp;
+			*r_u1_bc = r_u_tmp;
+		} // sommerfeld
+	}
+#endif
+	// Kalmi's transducer
+	/*	
+    if (i_eq_res_m_2) {
+		if ( 32 <= j && j <= 96 ) { g_u2[threadoffset_p_one] = params.bcC1 * (*r_u1_bc) + params.bcC3 * r_u2 + params.bcC2 * cosf( params.omega_dt * k ); }
+		else { g_u2[threadoffset_p_one] = r_u2; }
+	}
+	*/
+	
+	    // ============================== N
 	// neumann
     // if (j_eq_res_m_2) { g_u2[threadoffset_p_res] = r_u2 - params.bck * ( r_u2 - 2 * r_u1 + r_u0 ); }
     // if (j_eq_res_m_2) { g_u2[threadoffset_p_res] = r_u2; }
 	// dirichlet
-    if (j_eq_res_m_2) { g_u2[threadoffset_p_res] = 0; }
+    // if (j_eq_res_m_2) { g_u2[threadoffset_p_res] = 0; }
 	// if (j_eq_res_m_2) { float r_u_tmp = *r_u1_bc - dt*Z*c/dx * ( r_u1 - *r_u1_bc ); g_u2[threadoffset_p_res] = r_u_tmp; *r_u1_bc = r_u_tmp; } // temp 1st order impl. TODO: 2nd order
+	// sommerfeld
+	if (j_eq_res_m_2) {
+		// float r_u_tmp = *r_u1_bc + params.dt * params.c / params.dx * ( r_u1 - *r_u1_bc ); // somewhat worked
+		float r_u_tmp = *r_u1_bc * params.som1 + params.som2 * ( r_u2 );
+		g_u2[threadoffset_p_res] = r_u_tmp;
+		*r_u1_bc = r_u_tmp;
+	}
 
     //sw
 	// if (i_eq_1 && j_eq_1) { g_u2[threadoffset_m_res - 1] = r_u2 + params.bck * ( r_u2 - 2 * r_u1 + r_u0 ); }

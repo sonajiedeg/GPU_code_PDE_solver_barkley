@@ -6,19 +6,19 @@ from matplotlib.animation import FuncAnimation
 # --- 1. CONFIGURATION ---
 LABEL = 12
 FONT = 18
-res = 256
+res = 128 
 dt = 5.859374999999999e-09 / 4
 STEP = 500.0
 p0 = 101325 # Pa
 
 # Choose your mode: 'heatmap_anim', 'line_anim', 'line_static', or 'point_static'
-RUN_MODE = 'heatmap_anim'
+# RUN_MODE = 'heatmap_anim'
 # RUN_MODE = 'line_anim'
 # RUN_MODE = 'line_static'
-# RUN_MODE = 'point_static'
+RUN_MODE = 'point_static'
 
 # choose .mp4 name
-ani_name = 'hmap'
+ani_name = 'hmap_2tran_all_sommer_line'
 
 # choose file to read
 fname = 'u_snap.bin'
@@ -27,16 +27,28 @@ fname = 'u_snap.bin'
 
 # down sampling settings
 ds = True
-num_frames_ds_target = 100
+num_frames_ds_target = 426 
 
 # Parameters for the 1D Spatial features (line modes)
-TARGET_AXIS = 'row'     # Choose 'row' or 'col'
-TARGET_INDEX = 128      # Which specific row or column index to extract (0 to 255)
-FRAMES_TO_PLOT = [0, 50, 100, 150, 200] # Used only for 'line_static' mode
+TARGET_AXIS = 'col'     # Choose 'row' or 'col'
+TARGET_INDEX = 1      # Which specific row or column index to extract (0 to 255)
+# TARGET_INDEX = 64 # Which specific row or column index to extract (0 to 255)
+# FRAMES_TO_PLOT = [0, 50, 100, 150, 200] # Used only for 'line_static' mode
+FRAMES_TO_PLOT = [] # Used only for 'line_static' mode
+title_str = f""
+fs = 1
+fn = 10
+for i in range(num_frames_ds_target-1, num_frames_ds_target-1 - fs * fn, -fs):
+    FRAMES_TO_PLOT.append(i)
+
+# FRAMES_TO_PLOT = [1200]
+# FRAMES_TO_PLOT.append(1199)
 
 # Parameters for the 1D Temporal feature (point mode)
 # List of (row, col) tuples you want to track over time
-POINTS_TO_PLOT = [(128, 128), (128, 138), (64, 128)] 
+# POINTS_TO_PLOT = [(128, 128), (128, 138), (64, 128)] 
+POINTS_TO_PLOT = [(64, 64), (64, 1)] 
+# POINTS_TO_PLOT = [(64, 64), (64, 32), (64, 96)] 
 
 
 # --- 2. DATA LOADING ---
@@ -82,7 +94,7 @@ else:
 
 
 # add ambient pressure
-data = data + p0  
+data = data
 
 print("-------------------------------->",data[0][0][0])
 # --- 3. MODES ---
@@ -115,8 +127,10 @@ if RUN_MODE == 'heatmap_anim':
 
     def update_heatmap(frame):
         heatmap.set_data(data[frame])
-        # heatmap.set_clim(np.min(data), np.max(data))
-        heatmap.set_clim(0, 200000)
+        # heatmap.set_clim(0, np.max(data))
+        heatmap.set_clim(np.min(data), np.max(data))
+        # heatmap.set_clim(0, 1)
+        # heatmap.set_clim(0, 200000)
         # heatmap.set_clim(np.min(data[frame]), np.max(data[frame]))
         # heatmap.set_clim(0, np.max(data[frame]))
         # heatmap.set_clim(np.min(data[frame]), np.max(data[frame]))
@@ -124,8 +138,8 @@ if RUN_MODE == 'heatmap_anim':
         ax.set_title(f"frame {frame}", fontsize=20)
         return [heatmap]
 
-    ani = FuncAnimation(fig, update_heatmap, frames=num_frames, interval=180)
-    ani.save(ani_name + ".mp4", writer="ffmpeg", fps=36, dpi=200)
+    ani = FuncAnimation(fig, update_heatmap, frames=num_frames, interval=100)
+    ani.save(ani_name + ".mp4", writer="ffmpeg", fps=48, dpi=200)
     plt.show()
 
 elif RUN_MODE == 'line_anim':
@@ -166,11 +180,11 @@ elif RUN_MODE == 'line_anim':
         ax.set_title(f"1D Cut ({title_str}) | Time {(frame*dt*STEP):.4f} | Frame {frame}", fontsize=16)
         return [line]
 
-    ani = FuncAnimation(fig, update_line, frames=num_frames, interval=20)
+    ani = FuncAnimation(fig, update_line, frames=num_frames, interval=150)
     
     save_name = f"1D_anim_{TARGET_AXIS}_{TARGET_INDEX}.mp4"
     print(f"Saving animation to {save_name}...")
-    ani.save(save_name, writer="ffmpeg", fps=36, dpi=200)
+    ani.save(save_name, writer="ffmpeg", fps=20, dpi=200)
     plt.show()
 
 elif RUN_MODE == 'line_static':

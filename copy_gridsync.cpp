@@ -56,7 +56,8 @@ void text_to_array(float* u, float* v) {
         while (getline(newfile, tp))  //read data from file object and put it into string.
         {
             //cout << tp << "\n"; //print the data of the string
-            u[i++] = stof(tp);
+            // u[i++] = stof(tp); // for the REMOTE
+            u[i++] = 0; // for the LOCAL
         }
         newfile.close(); //close the file object.
     }
@@ -68,7 +69,8 @@ void text_to_array(float* u, float* v) {
         while (getline(newfile, tp))  //read data from file object and put it into string.
         {
             //cout << tp << "\n"; //print the data of the string
-            v[i++] = stof(tp);
+            v[i++] = stof(tp); // for the REMOTE
+            v[i++] = 0; // for the LOCALE 
         }
         //cout << "v: " << v[0] << "\n";
         newfile.close(); //close the file object.

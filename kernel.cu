@@ -48,14 +48,13 @@ void print_runtimes(std::chrono::steady_clock::time_point begin, std::chrono::st
 
 int main()
 {
-    const unsigned int res = 256;
+    const unsigned int res = 128;
     const unsigned int size = res * res;
     float* u = new float[size];
     float* v = new float[size];
     float* u_sol = new float[size];
-
 	// read ic
-    text_to_array(u, v);
+    // text_to_array(u, v); 
 
     // Add vectors in parallel.
     cudaError_t cudaStatus = iterate_prep(u, v, u_sol, size, res); CUERR;
@@ -123,7 +122,7 @@ cudaError_t iterate_prep(float* u, float* v, float* u_sol, unsigned int size, in
 	}
 
     dim3 dimBlock(32, 32, 1);
-    dim3 dimGrid(8, 8, 1);
+    dim3 dimGrid(4, 4, 1);
 
     //measure elapsed time
     std::chrono::steady_clock::time_point begin;
@@ -152,13 +151,12 @@ cudaError_t iterate_prep(float* u, float* v, float* u_sol, unsigned int size, in
 		}
         cudaDeviceSynchronize();
         // ---------- Launch a kernel on the GPU with one thread for each element. ----------
-
         begin = std::chrono::steady_clock::now();
-
         if ( params.all ){ cudaLaunchCooperativeKernel((void*)iterate_snap_grad, dimGrid, dimBlock, kernelArgs); }
 		else if ( params.SNAPSHOT ){ cudaLaunchCooperativeKernel((void*)iterate_snap, dimGrid, dimBlock, kernelArgs); }
 		else{ cudaLaunchCooperativeKernel((void*)iterate, dimGrid, dimBlock, kernelArgs); }
         cudaDeviceSynchronize(); CUERR;
+		
 
         end = std::chrono::steady_clock::now();
         print_runtimes(begin, end, params);
@@ -179,14 +177,12 @@ cudaError_t iterate_prep(float* u, float* v, float* u_sol, unsigned int size, in
 			cudaMemcpy(uSnapGradx, dev_snap_gradx, size * sizeof(float) * int( params.tsc ), cudaMemcpyDeviceToHost); CUERR;
 			
 			cudaMemcpy(uSnapGrady, dev_snap_grady, size * sizeof(float) * int( params.tsc ), cudaMemcpyDeviceToHost); CUERR;
-			
 		}
 		if ( params.SNAPSHOT ) { cudaMemcpy(uSnap, dev_snap, size * sizeof(float) * int( params.tsc ), cudaMemcpyDeviceToHost); CUERR; }
 
         cudaDeviceSynchronize(); CUERR;
 
         // array_to_text(u, res);
-
 		
 		snap_to_text(uSnap, res, params, "u_snap.bin");
 		
@@ -194,8 +190,7 @@ cudaError_t iterate_prep(float* u, float* v, float* u_sol, unsigned int size, in
 		
 		snap_to_text(uSnapGrady, res, params, "u_snap_grady.bin");
 		
-
-        test(u, size);
+        // test(u, size);
     }
 
 // Error:

@@ -24,9 +24,16 @@ struct SimParamStruct{
 	float rho;
 	float d;
 	float omega;
-	float dt_rho_d_omega2;
+	float dx_rho_d_omega2;
 	float omega_dt;
 	float sin_coeff;
 	float Z;
 	float kappa;
+
+	float Pa;
+	float bcC1;
+	float bcC2;
+	float bcC3;
+	float som1;
+	float som2;
 };

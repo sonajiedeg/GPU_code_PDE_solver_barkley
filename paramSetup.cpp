@@ -3,7 +3,7 @@
 
 
 SimParamStruct paramSetup(){
-	float lInWavelenght = 2;
+	float lInWavelenght = 1;
 	int res = 128;
 	SimParamStruct params;
 	params.f = 20e3;
@@ -42,6 +42,11 @@ SimParamStruct paramSetup(){
 	params.bcC1 = 1 / ( 1 + params.dt * params.c / params.dx );
 	params.bcC2 = params.dt * params.bcC1 * params.omega;
 	params.bcC3 = params.dt * params.c / params.dx * params.bcC1;
+
+	params.C_amp = 4*4; // it is a unit multiplied by pi: if ==1 => will result in pi
+	float K = 1 / params.f / params.dt; // T / dt, time period in unit of timesteps
+	params.C_off = 70 * K; // time offset, will turn on the phase offet after this, has unit of [number of oscillations * number of timesteps]
+	params.s = 0.001;
 	/*
 	 * c
 	 * L = 3 lambda = 3 c / f
@@ -73,6 +78,18 @@ SimParamStruct paramSetup(){
 		params.SNAP_MODULUS = 1;
 		params.tsc = params.ITERATIONS;
 	}
+	printf("f: %f (Hz)\n",params.f);
+	printf("c: %f (m/s)\n",params.c);
+	printf("rho: %f (kg/m^3)\n",params.rho);
+	printf("CFL: %f (-)\n",params.sigma);
+	printf("dx: %f (m)\n",params.dx);
+	printf("dt: %.9g (s)\n",params.dt);
+	printf("t_end: %f (s)\n",t);
+	// float tmp = 1.40625014e-06;
+	// printf("1.40625014e-06 == dt: %d (-)\n", tmp == params.dt);
+	printf("t_end / (L / lam) * f: %f (-)\n",t * params.f / lInWavelenght);
+	printf("L / lam: %f (-)\n",lInWavelenght);
+	printf("L: %f (m)\n",params.c / params.f * lInWavelenght);
 
 	return params;
 }

@@ -36,4 +36,7 @@ struct SimParamStruct{
 	float bcC3;
 	float som1;
 	float som2;
+	float C_amp;
+	float C_off;
+	float s;
 };

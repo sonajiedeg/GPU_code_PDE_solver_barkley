@@ -160,8 +160,9 @@ __global__ void iterate_snap_grad(float* g_ua, float* g_ub, float* g_v, int res,
             iterate_without_laplace(r_ub, &r_ua, r_uc2);
 
             // ----- "Unload" Data And No Flux Bc 1 -----
-            copy_r_to_g_and_no_flux_int_friend(g_ub, r_ub, r_ua, r_uc1, &r_u_bc, res, i, j, ThreadOffset, j_eq_1, j_eq_res_m_2, i_eq_1, i_eq_res_m_2, threadoffset_p_one, threadoffset_m_one, threadoffset_p_res, threadoffset_m_res, within_simspace_inner, k, params);
+            copy_r_to_g_and_no_flux_int_friend(g_ub, r_ub, r_ua, r_uc1, &r_u_bc, res, i, j, ThreadOffset, j_eq_1, j_eq_res_m_2, i_eq_1, i_eq_res_m_2, threadoffset_p_one, threadoffset_m_one, threadoffset_p_res, threadoffset_m_res, within_simspace_inner, k*2, params);
 			// ----- save snapshot to global memory -----
+            whole_grid.sync();
 			if ( (k*2) % params.SNAP_MODULUS == 0 ){
 				if(within_simspace_inner){
 					g_snap[ThreadOffset + ( countSnap++ ) * size] = r_ub;
@@ -184,8 +185,9 @@ __global__ void iterate_snap_grad(float* g_ua, float* g_ub, float* g_v, int res,
             iterate_without_laplace(r_ua, &r_ub, r_uc1);
 
             // ----- "Unload" Data And No Flux Bc 2 -----
-            copy_r_to_g_and_no_flux_int_friend(g_ua, r_ua, r_ub, r_uc2, &r_u_bc, res, i, j, ThreadOffset, j_eq_1, j_eq_res_m_2, i_eq_1, i_eq_res_m_2, threadoffset_p_one, threadoffset_m_one, threadoffset_p_res, threadoffset_m_res, within_simspace_inner, k+1, params);
+            copy_r_to_g_and_no_flux_int_friend(g_ua, r_ua, r_ub, r_uc2, &r_u_bc, res, i, j, ThreadOffset, j_eq_1, j_eq_res_m_2, i_eq_1, i_eq_res_m_2, threadoffset_p_one, threadoffset_m_one, threadoffset_p_res, threadoffset_m_res, within_simspace_inner, k*2+1, params);
 			// ----- save snapshot to global memory -----
+            whole_grid.sync();
 			if ( (k*2+1) % params.SNAP_MODULUS == 0 ){
 				if(within_simspace_inner){
 					g_snap[ThreadOffset + ( countSnap++ ) * size] = r_ua;
@@ -403,6 +405,10 @@ static __device__ __forceinline__ void copy_r_to_g_and_no_flux_int_friend(float*
 		float r_u_tmp = *r_u1_bc / ( 1 + params.dt * params.c / params.dx ) + params.dt * params.c / params.dx * ( r_u2 ) / ( 1 + params.dt * params.c / params.dx );
 		g_u2[threadoffset_m_res] = r_u_tmp;
 		*r_u1_bc = r_u_tmp;
+		//sw
+		if (i_eq_1 && j_eq_1) { g_u2[threadoffset_m_res - 1] = r_u_tmp; }
+		//se
+		if (i_eq_res_m_2 && j_eq_1) { g_u2[threadoffset_m_res + 1] = r_u_tmp; }
 	}
     // ============================== W
     // impedance/sommerfeld
@@ -421,8 +427,8 @@ static __device__ __forceinline__ void copy_r_to_g_and_no_flux_int_friend(float*
 	*/
 	/*
 	if (i_eq_1) {
-		// if ( 64 <= j && j <= 192 ) { g_u2[threadoffset_p_one] = r_u2 + params.sin_coeff * sinf( params.omega_dt * k ) - params.bck * ( r_u2 - 2 * r_u1 + r_u0 ); }
-		if ( 32 <= j && j <= 96 ) { g_u2[threadoffset_m_one] = r_u2 + (1 - 1/32*abs(j-64)) * params.dx_rho_d_omega2 * sinf( params.omega_dt * k + 1.5707963267948966192313216916398); }
+		// if ( 64 <= j && j <= 192 ) { g_u2[threadoffset_p_one] = r_u2 + params.sin_coeff * __sinf( params.omega_dt * k ) - params.bck * ( r_u2 - 2 * r_u1 + r_u0 ); }
+		if ( 32 <= j && j <= 96 ) { g_u2[threadoffset_m_one] = r_u2 + (1 - 1/32*abs(j-64)) * params.dx_rho_d_omega2 * __sinf( params.omega_dt * k + 1.5707963267948966192313216916398); }
 		// else { g_u2[threadoffset_p_one] = r_u2 - params.bck * ( r_u2 - 2 * r_u1 + r_u0 ); } // idk, mabey 2nd order neumann
 		else {
 			// float r_u_tmp = *r_u1_bc + params.dt * params.c / params.dx * ( r_u1 - *r_u1_bc ); // somewhat worked
@@ -443,12 +449,23 @@ static __device__ __forceinline__ void copy_r_to_g_and_no_flux_int_friend(float*
 	*/
 	// Kalmi's transducer
     if (i_eq_1) {
-		if ( 32 <= j && j <= 96 ) {
-			float r_u_tmp = params.bcC1 * (*r_u1_bc) + params.bcC3 * r_u2 + params.bcC2 * cosf( params.omega_dt * k + 0.7853981634);
+		if ( 1 <= j && j <= 128-2) {
+			float r_u_tmp = params.bcC1 * (*r_u1_bc) + params.bcC3 * r_u2 + params.bcC2 * __cosf( params.omega_dt * k );
 			g_u2[threadoffset_m_one] = r_u_tmp;
 			(*r_u1_bc) = r_u_tmp;
 		}
-		else { g_u2[threadoffset_m_one] = r_u2; }
+		// else { g_u2[threadoffset_m_one] = r_u2; }
+		else{
+			float r_u_tmp = *r_u1_bc / ( 1 + params.dt * params.c / params.dx ) + params.dt * params.c / params.dx * ( r_u2 ) / ( 1 + params.dt * params.c / params.dx );
+			g_u2[threadoffset_m_one] = r_u_tmp;
+			//sw
+			if (i_eq_1 && j_eq_1) { g_u2[threadoffset_m_res - 1] = r_u_tmp; }
+			//nw
+			if (i_eq_1 && j_eq_res_m_2) { g_u2[threadoffset_p_res - 1] = r_u_tmp; }
+
+			*r_u1_bc = r_u_tmp;
+
+		}
 	}
 	// dirichlet
 	// if (i_eq_1) { g_u2[threadoffset_m_one] = 0; }
@@ -476,8 +493,8 @@ static __device__ __forceinline__ void copy_r_to_g_and_no_flux_int_friend(float*
 #elif eBC == 3
 	// transducer and sommerfeld
     if (i_eq_res_m_2) {
-		// if ( 64 <= j && j <= 192 ) { g_u2[threadoffset_p_one] = r_u2 + params.sin_coeff * sinf( params.omega_dt * k ) - params.bck * ( r_u2 - 2 * r_u1 + r_u0 ); }
-		if ( 32 <= j && j <= 96 ) { g_u2[threadoffset_p_one] = r_u2 + (1 - 1/32*abs(j-64)) * params.dx_rho_d_omega2 * sinf( params.omega_dt * k ); }
+		// if ( 64 <= j && j <= 192 ) { g_u2[threadoffset_p_one] = r_u2 + params.sin_coeff * __sinf( params.omega_dt * k ) - params.bck * ( r_u2 - 2 * r_u1 + r_u0 ); }
+		if ( 60 <= j && j <= 68 ) { g_u2[threadoffset_p_one] = r_u2 + (1 - 1/32*abs(j-64)) * params.dx_rho_d_omega2 * __sinf( params.omega_dt * k ); }
 		// else { g_u2[threadoffset_p_one] = r_u2 - params.bck * ( r_u2 - 2 * r_u1 + r_u0 ); } // idk, mabey 2nd order neumann
 		else {
 			// float r_u_tmp = *r_u1_bc + params.dt * params.c / params.dx * ( r_u1 - *r_u1_bc ); // somewhat worked
@@ -487,14 +504,49 @@ static __device__ __forceinline__ void copy_r_to_g_and_no_flux_int_friend(float*
 			*r_u1_bc = r_u_tmp;
 		} // sommerfeld
 	}
+#elif eBC == 4
+// Kalmi's transducer
+    if (i_eq_res_m_2) {
+		if ( 1 <= j && j <= 128-2 ) {
+			float phase_offset = 0;
+			// if (k<=5120) { phase_offset = params.C_amp*( 3.14159265359*0.5 + atanf( params.s * (k - params.C_off ) ) ); }
+			// if (k<=10240) { phase_offset = 4*3.14159265359*sinf( k / 3.14159265359 / 2560 ); }
+			// if (k<=10240) { phase_offset = 4*3.14159265359*k/10240; }
+			// else { phase_offset = params.C_amp*( 3.14159265359*0.5 - atanf( params.s * (k - 3.2 * params.C_off ) ) ); }
+			// if(j == 64 && k%10==0){printf("offset = %f\n",phase_offset);}
+			// float r_u_tmp = params.bcC1 * (*r_u1_bc) + params.bcC3 * r_u2 + params.bcC2 * __cosf( params.omega_dt * k + phase_offset + 3.14159265359*0.5);
+			float r_u_tmp = params.bcC1 * (*r_u1_bc) + params.bcC3 * r_u2 + params.bcC2 * __cosf( params.omega_dt * k + phase_offset );
+			g_u2[threadoffset_p_one] = r_u_tmp;
+			(*r_u1_bc) = r_u_tmp;
+		}
+		// else { g_u2[threadoffset_p_one] = r_u2; }
+		else{
+			//float r_u_tmp = *r_u1_bc / ( 1 + params.dt * params.c / params.dx ) + params.dt * params.c / params.dx * ( r_u2 ) / ( 1 + params.dt * params.c / params.dx );
+			float r_u_tmp = params.som1 * (*r_u1_bc) + params.som2 * ( r_u2 );
+			g_u2[threadoffset_p_one] = r_u_tmp;
+			//se
+			if (i_eq_res_m_2 && j_eq_1) { g_u2[threadoffset_m_res + 1] = r_u_tmp; }
+			//ne
+			if (i_eq_res_m_2 && j_eq_res_m_2) { g_u2[threadoffset_p_res + 1] = r_u_tmp; }
+
+			*r_u1_bc = r_u_tmp;
+
+		}
+	}
 #endif
 	// Kalmi's transducer
+
 	/*	
     if (i_eq_res_m_2) {
-		if ( 32 <= j && j <= 96 ) { g_u2[threadoffset_p_one] = params.bcC1 * (*r_u1_bc) + params.bcC3 * r_u2 + params.bcC2 * cosf( params.omega_dt * k ); }
+		if ( 32 <= j && j <= 96 ) {
+			float r_u_tmp = params.bcC1 * (*r_u1_bc) + params.bcC3 * r_u2 + params.bcC2 * __cosf( params.omega_dt * k );
+			g_u2[threadoffset_p_one] = r_u_tmp;
+			*r_u1_bc = r_u_tmp;
+		}
 		else { g_u2[threadoffset_p_one] = r_u2; }
 	}
 	*/
+	
 	
 	    // ============================== N
 	// neumann
@@ -509,8 +561,14 @@ static __device__ __forceinline__ void copy_r_to_g_and_no_flux_int_friend(float*
 		float r_u_tmp = *r_u1_bc * params.som1 + params.som2 * ( r_u2 );
 		g_u2[threadoffset_p_res] = r_u_tmp;
 		*r_u1_bc = r_u_tmp;
+		//nw
+		if (i_eq_1 && j_eq_res_m_2) { g_u2[threadoffset_p_res - 1] = r_u_tmp; }
+		//ne
+		if (i_eq_res_m_2 && j_eq_res_m_2) { g_u2[threadoffset_p_res + 1] = r_u_tmp; }
+
 	}
 
+	/*
     //sw
 	// if (i_eq_1 && j_eq_1) { g_u2[threadoffset_m_res - 1] = r_u2 + params.bck * ( r_u2 - 2 * r_u1 + r_u0 ); }
     if (i_eq_1 && j_eq_1) { g_u2[threadoffset_m_res - 1] = r_u2; }
@@ -523,4 +581,5 @@ static __device__ __forceinline__ void copy_r_to_g_and_no_flux_int_friend(float*
     //ne
     // if (i_eq_res_m_2 && j_eq_res_m_2) { g_u2[threadoffset_p_res + 1] = r_u2 - params.bck * ( r_u2 - 2 * r_u1 + r_u0 ); }
     if (i_eq_res_m_2 && j_eq_res_m_2) { g_u2[threadoffset_p_res + 1] = r_u2; }
+	*/
 }

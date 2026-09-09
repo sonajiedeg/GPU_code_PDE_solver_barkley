@@ -11,14 +11,16 @@ dt = 5.859374999999999e-09 / 4
 STEP = 500.0
 p0 = 101325 # Pa
 
+PHASE_SNAP = False
 # Choose your mode: 'heatmap_anim', 'line_anim', 'line_static', or 'point_static'
 # RUN_MODE = 'heatmap_anim'
 # RUN_MODE = 'line_anim'
+RUN_MODE = 'line_anim_phase_snap'
 # RUN_MODE = 'line_static'
-RUN_MODE = 'point_static'
+# RUN_MODE = 'point_static'
 
 # choose .mp4 name
-ani_name = 'hmap_2tran_all_sommer_line'
+ani_name = 'hmap_2tran_kalmis_all_sommer_standing_wave_phase_shift_tmp_4'
 
 # choose file to read
 fname = 'u_snap.bin'
@@ -26,12 +28,12 @@ fname = 'u_snap.bin'
 # fname = 'u_snap_grady.bin'
 
 # down sampling settings
-ds = True
-num_frames_ds_target = 426 
+DOWN_SAMPLE = True
+num_frames_ds_target = 100 
 
 # Parameters for the 1D Spatial features (line modes)
-TARGET_AXIS = 'col'     # Choose 'row' or 'col'
-TARGET_INDEX = 1      # Which specific row or column index to extract (0 to 255)
+TARGET_AXIS = 'row'     # Choose 'row' or 'col'
+TARGET_INDEX = 64      # Which specific row or column index to extract (0 to 255)
 # TARGET_INDEX = 64 # Which specific row or column index to extract (0 to 255)
 # FRAMES_TO_PLOT = [0, 50, 100, 150, 200] # Used only for 'line_static' mode
 FRAMES_TO_PLOT = [] # Used only for 'line_static' mode
@@ -47,13 +49,61 @@ for i in range(num_frames_ds_target-1, num_frames_ds_target-1 - fs * fn, -fs):
 # Parameters for the 1D Temporal feature (point mode)
 # List of (row, col) tuples you want to track over time
 # POINTS_TO_PLOT = [(128, 128), (128, 138), (64, 128)] 
-POINTS_TO_PLOT = [(64, 64), (64, 1)] 
+POINTS_TO_PLOT = [(64, 0), (64, 127)] 
 # POINTS_TO_PLOT = [(64, 64), (64, 32), (64, 96)] 
 
 
 # --- 2. DATA LOADING ---
 print("Loading data...")
-if ds:
+if PHASE_SNAP:
+    dt = 1.40625014e-06
+    # dt = 2.81250027e-06
+    # t_end = 0.0072
+    freq = 20000
+    Tper = 1 / freq 
+    file_size = os.path.getsize(fname)
+    frame_bytes = res * res * 4
+    num_frames = file_size // frame_bytes
+    # print('------------------------->', file_size // frame_bytes == data.size // (res * res))
+    # num_frames = data.size // (res * res)
+    # data = data.reshape((num_frames, res, res))
+    step = num_frames // num_frames_ds_target
+    selected_frames = []
+    
+    phase_counter = 0
+    t_current = 0
+    frame_needed = False
+    with open(fname, "rb") as f:
+        for frame_idx in range(num_frames):
+            t_current = frame_idx * dt
+            t_peak = phase_counter * Tper
+            if t_current <= t_peak and t_current+dt > t_peak:
+                frame_needed = True
+                phase_counter = phase_counter+1
+            else:
+                frame_needed = False 
+
+            if frame_needed:
+                # Read and parse only the required frame
+                chunk = f.read(res * res * 4)
+                frame = np.frombuffer(chunk, dtype=np.float32).reshape(res, res)
+                selected_frames.append(frame)
+            else:
+                # Skip 24 frames instantly without loading data into RAM
+                f.seek(res * res * 4, 1)
+    num_frames_ds = len(selected_frames)
+    step = num_frames // num_frames_ds
+    print("num_frames:", num_frames)
+    print('num_frames_ds_target:', num_frames_ds_target)
+    print('num_frames_ds:', num_frames_ds)
+    print('len(selected_frames):',len(selected_frames) )
+    data = np.array(selected_frames).reshape((num_frames_ds, res, res))
+    print("data size:", data.size)
+    print("expected per frame:", res*res)
+    print('step:', step)
+    num_frames = num_frames_ds
+
+elif DOWN_SAMPLE:
     file_size = os.path.getsize(fname)
     frame_bytes = res * res * 4
     num_frames = file_size // frame_bytes
@@ -180,12 +230,58 @@ elif RUN_MODE == 'line_anim':
         ax.set_title(f"1D Cut ({title_str}) | Time {(frame*dt*STEP):.4f} | Frame {frame}", fontsize=16)
         return [line]
 
-    ani = FuncAnimation(fig, update_line, frames=num_frames, interval=150)
+    ani = FuncAnimation(fig, update_line, frames=num_frames, interval=50)
     
     save_name = f"1D_anim_{TARGET_AXIS}_{TARGET_INDEX}.mp4"
     print(f"Saving animation to {save_name}...")
     ani.save(save_name, writer="ffmpeg", fps=20, dpi=200)
     plt.show()
+
+elif RUN_MODE == 'line_anim_phase_snap':
+    # ---------------------------------------------------------
+    # 1D Line Plot Animation, with phase snapshots
+    # ---------------------------------------------------------
+    fig, ax = plt.subplots(figsize=(9, 6))
+    x_data = np.arange(res)
+
+    if TARGET_AXIS == 'row':
+        y_data = data[0, TARGET_INDEX, :]
+        title_str = f"Row {TARGET_INDEX}"
+        global_min = np.min(data[:, TARGET_INDEX, :])
+        global_max = np.max(data[:, TARGET_INDEX, :])
+    else:
+        y_data = data[0, :, TARGET_INDEX]
+        title_str = f"Column {TARGET_INDEX}"
+        global_min = np.min(data[:, :, TARGET_INDEX])
+        global_max = np.max(data[:, :, TARGET_INDEX])
+
+    line, = ax.plot(x_data, y_data, lw=2, color='blue')
+
+    ax.set_xlim(0, res - 1)
+    y_range = global_max - global_min
+    ax.set_ylim(global_min - 0.1 * y_range, global_max + 0.1 * y_range)
+    
+    ax.set_xlabel("Cell Number", fontsize=FONT)
+    ax.set_ylabel("Amplitude", fontsize=FONT)
+    ax.tick_params(axis='both', which='major', labelsize=LABEL)
+    ax.grid(True, linestyle='--', alpha=0.6)
+
+    def update_line(frame):
+        if TARGET_AXIS == 'row':
+            line.set_ydata(data[frame, TARGET_INDEX, :])
+        else:
+            line.set_ydata(data[frame, :, TARGET_INDEX])
+            
+        ax.set_title(f"1D Cut ({title_str}) | Time {(frame*dt*STEP):.4f} | Frame {frame}", fontsize=16)
+        return [line]
+
+    ani = FuncAnimation(fig, update_line, frames=num_frames, interval=200)
+    
+    save_name = f"1D_anim_{TARGET_AXIS}_{TARGET_INDEX}.mp4"
+    print(f"Saving animation to {save_name}...")
+    ani.save(save_name, writer="ffmpeg", fps=20, dpi=200)
+    plt.show()
+
 
 elif RUN_MODE == 'line_static':
     # ---------------------------------------------------------

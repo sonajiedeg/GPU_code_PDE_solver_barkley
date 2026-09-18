@@ -6,24 +6,29 @@ from matplotlib.animation import FuncAnimation
 # --- 1. CONFIGURATION ---
 LABEL = 12
 FONT = 18
-res = 128 
-dt = 5.859374999999999e-09 / 4
+res = 256 
+# dt = 5.859374999999999e-09 / 4
+# dt = 4.71698115e-07
+dt = 1.17370888e-07
+dt = 5.86166458e-08
+dt = 3.55113627e-08
 STEP = 500.0
 p0 = 101325 # Pa
 
-PHASE_SNAP = False
+PHASE_SNAP = True
 # Choose your mode: 'heatmap_anim', 'line_anim', 'line_static', or 'point_static'
-# RUN_MODE = 'heatmap_anim'
+RUN_MODE = 'heatmap_anim'
 # RUN_MODE = 'line_anim'
-RUN_MODE = 'line_anim_phase_snap'
+# RUN_MODE = 'line_anim_phase_snap'
 # RUN_MODE = 'line_static'
 # RUN_MODE = 'point_static'
 
 # choose .mp4 name
-ani_name = 'hmap_2tran_kalmis_all_sommer_standing_wave_phase_shift_tmp_4'
+ani_name = 'hmap_name_tmp'
 
 # choose file to read
-fname = 'u_snap.bin'
+fname = 'u_snap_f_44000.00_df_0.00_s_3.bin'
+# fname = 'u_snap.bin'
 # fname = 'u_snap_gradx.bin'
 # fname = 'u_snap_grady.bin'
 
@@ -33,7 +38,7 @@ num_frames_ds_target = 100
 
 # Parameters for the 1D Spatial features (line modes)
 TARGET_AXIS = 'row'     # Choose 'row' or 'col'
-TARGET_INDEX = 64      # Which specific row or column index to extract (0 to 255)
+TARGET_INDEX = 128      # Which specific row or column index to extract (0 to 255)
 # TARGET_INDEX = 64 # Which specific row or column index to extract (0 to 255)
 # FRAMES_TO_PLOT = [0, 50, 100, 150, 200] # Used only for 'line_static' mode
 FRAMES_TO_PLOT = [] # Used only for 'line_static' mode
@@ -48,7 +53,7 @@ for i in range(num_frames_ds_target-1, num_frames_ds_target-1 - fs * fn, -fs):
 
 # Parameters for the 1D Temporal feature (point mode)
 # List of (row, col) tuples you want to track over time
-# POINTS_TO_PLOT = [(128, 128), (128, 138), (64, 128)] 
+# POINTS_TO_PLOT = [(256, 256), (256, 138), (64, 256)] 
 POINTS_TO_PLOT = [(64, 0), (64, 127)] 
 # POINTS_TO_PLOT = [(64, 64), (64, 32), (64, 96)] 
 
@@ -56,11 +61,19 @@ POINTS_TO_PLOT = [(64, 0), (64, 127)]
 # --- 2. DATA LOADING ---
 print("Loading data...")
 if PHASE_SNAP:
-    dt = 1.40625014e-06
+    # dt = 1.40625014e-06
     # dt = 2.81250027e-06
     # t_end = 0.0072
-    freq = 20000
-    Tper = 1 / freq 
+    # dt = 4.71698115e-07
+    # dt = 1.17370888e-07
+    # dt = 5.86166458e-08
+    dt = 2.66439297e-08
+    dt = 4.00128037e-08
+    dt = 3.55113627e-08
+    dt = 3.55113627e-08
+    freq = 44000
+    Tper = 1 / freq / 8
+    PhaseSnapOffsetDt = ( np.pi * 0/3 ) / 2 / np.pi / freq
     file_size = os.path.getsize(fname)
     frame_bytes = res * res * 4
     num_frames = file_size // frame_bytes
@@ -76,8 +89,8 @@ if PHASE_SNAP:
     with open(fname, "rb") as f:
         for frame_idx in range(num_frames):
             t_current = frame_idx * dt
-            t_peak = phase_counter * Tper
-            if t_current <= t_peak and t_current+dt > t_peak:
+            t_peak = phase_counter * Tper + PhaseSnapOffsetDt
+            if t_current <= t_peak and  t_peak < t_current+dt:
                 frame_needed = True
                 phase_counter = phase_counter+1
             else:

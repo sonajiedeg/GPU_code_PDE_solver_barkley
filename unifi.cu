@@ -12,6 +12,44 @@ cudaError_t init(float** dev_2_u, float** dev_ua, float** dev_ub, float** dev_v,
 
 cudaError_t init(float** dev_2_u, float** dev_ua, float** dev_ub, float** dev_v, unsigned int res, SimParamStruct params);
 
+cudaError_t init(float* u1, float* u2, float** dev_2_u, float** dev_ua, float** dev_ub, float** dev_snap, SimParamStruct params, int activeSteps);
+
+cudaError_t init(float* u1, float* u2, float** dev_2_u, float** dev_ua, float** dev_ub, float** dev_snap, SimParamStruct params, int activeSteps)
+{
+    /*
+    cudaFree(*dev_2_u);
+    cudaFree(*dev_ua);
+    cudaFree(*dev_ub);
+    cudaFree(*dev_v);
+    */
+
+    // READ INPUTS
+    // text_to_array(u, v);
+
+    cudaError_t cudaStatus;
+
+    // Allocate GPU buffers (two input, one output).
+    cudaStatus = cudaMalloc((void**)dev_2_u, 2 * params.res * params.res * sizeof(float)); CUERR;
+
+    // splitting the allcated memory for u
+    *dev_ua = *dev_2_u;
+    *dev_ub = *dev_2_u + params.res * params.res;
+
+    cudaStatus = cudaMemcpy(*dev_ua, u2, params.res * params.res * sizeof(float), cudaMemcpyHostToDevice); CUERR;
+
+    cudaStatus = cudaMemcpy(*dev_ub, u1, params.res * params.res * sizeof(float), cudaMemcpyHostToDevice); CUERR;
+
+    // cudaStatus = cudaMemcpy(*dev_v, v, size * sizeof(float), cudaMemcpyHostToDevice); CUERR;
+	// allocate mem for snapshots
+    cudaStatus = cudaMalloc((void**)dev_snap, params.res * params.res * sizeof(float) * ( int( activeSteps+10 ) ) ); CUERR;
+    // cudaStatus = cudaMalloc((void**)dev_snap_gradx, size * sizeof(float) * ( int( params.tsc+10 ) ) ); CUERR;
+    // cudaStatus = cudaMalloc((void**)dev_snap_grady, size * sizeof(float) * ( int( params.tsc+10 ) ) ); CUERR;
+
+	cudaStatus = cudaGetLastError();
+
+    return cudaStatus;  // Successful allocation
+}
+
 cudaError_t init(float* u, float* v, float** dev_2_u, float** dev_ua, float** dev_ub, float** dev_v, unsigned int size, int device_id, float** dev_snap, SimParamStruct params, float** dev_snap_gradx, float** dev_snap_grady)
 {
     /*

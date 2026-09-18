@@ -1,11 +1,13 @@
 #pragma once
 
 struct SimParamStruct{
+	int res;
 	int ITERATIONS;
 	int SNAPSHOT;			// 1 => save snapshots
 	int SNAP_MODULUS;		// take snapshots if k % SNAP_MODULUS == 0
 	int tsc; // target shot count
 	int all;
+	int segment;
 	int snap_grad;
 	float f;
 	float c;   // c ~= 1500 m/s, then take its square
@@ -39,4 +41,8 @@ struct SimParamStruct{
 	float C_amp;
 	float C_off;
 	float s;
+	float df;
+	int maxStepPerSegment;
+	int segments;
+	int remainder;
 };

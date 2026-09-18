@@ -1,0 +1,8 @@
+contour polot send, and segment, (small and large simspace, for patterns as well)
+Pa and transducer size
+ode solver
+prepare parameter sweep code
+check the solvers comparision
+check large transducer with some reflection in the bc, literature and patterns
+
+what to store: antinode trajectory, bubble trajectory 

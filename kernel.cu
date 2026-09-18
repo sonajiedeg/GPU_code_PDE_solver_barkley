@@ -29,6 +29,7 @@ cudaError_t err;																				\
 #include <fstream>
 #include <string>
 #include <chrono>
+#include <cstdio>
 #ifdef __INTELLISENSE__
 #define __CUDACC__
 #endif // __INTELLISENSE__
@@ -43,12 +44,13 @@ using cooperative_groups::thread_group;
 namespace cg = cooperative_groups;
 
 
-cudaError_t iterate_prep(float* u, float* v, float* u_sol, unsigned int size, int res);
+cudaError_t iterate_prep(float* u, float* v, float* u_sol, unsigned int size, int res, SimParamStruct params);
+cudaError_t iterate_prep_segment(float* u, float* v, float* u_sol, unsigned int size, int res, SimParamStruct params);
 void print_runtimes(std::chrono::steady_clock::time_point begin, std::chrono::steady_clock::time_point end, SimParamStruct params);
 
 int main()
 {
-    const unsigned int res = 128;
+    const unsigned int res = 256;
     const unsigned int size = res * res;
     float* u = new float[size];
     float* v = new float[size];
@@ -57,7 +59,10 @@ int main()
     // text_to_array(u, v); 
 
     // Add vectors in parallel.
-    cudaError_t cudaStatus = iterate_prep(u, v, u_sol, size, res); CUERR;
+	cudaError_t cudaStatus;
+	SimParamStruct params = paramSetup();
+	if(params.segment){ cudaStatus = iterate_prep_segment(u, v, u_sol, size, res, params); CUERR; }
+	else{ cudaStatus = iterate_prep(u, v, u_sol, size, res, params); CUERR; }
     // array_to_text(u, res);
 	
     // cudaDeviceReset must be called before exiting in order for profiling and
@@ -74,9 +79,110 @@ int main()
 }
 
 // Helper function for using CUDA to add vectors in parallel.
-cudaError_t iterate_prep(float* u, float* v, float* u_sol, unsigned int size, int res)
+cudaError_t iterate_prep_segment(float* u, float* v, float* u_sol, unsigned int size, int res, SimParamStruct params)
 {
-	SimParamStruct params = paramSetup();
+	float* u2 = new float[ size ];
+	float* u1 = new float[ size ];
+	for(int i = 0; i<size; i++){ u1[i]=u[i]; u2[i]=u[i]; }
+	cudaError_t cudaStatus;
+	int iteration_limit_per_2 = 0;
+	//measure elapsed time
+	std::chrono::steady_clock::time_point beginTot;
+	std::chrono::steady_clock::time_point endTot;
+
+
+	for(int segment = 0; segment < params.segments; segment++ )
+	{
+		int activeSteps = ( segment < params.segments-1 ) ? params.maxStepPerSegment : params.remainder;
+		float* dev_ua = 0;
+		float* dev_ub = 0;
+		float* dev_2_u = 0;
+		float* dev_snap = 0;
+		void* kernelArgs[5];
+		float* uSnap = new float[ size * int( activeSteps ) ];
+
+		//measure at this iteration
+		iteration_limit_per_2 += activeSteps / 2;
+		printf("active steps: %d\n", activeSteps);
+		printf("iter lim / 2: %d\n", iteration_limit_per_2);
+
+		int kStepStart = segment * params.maxStepPerSegment / 2;
+
+		// cooperative kernel launch parameters
+		kernelArgs[0] = (void*)&(dev_ua);
+		kernelArgs[1] = (void*)&(dev_ub);
+		kernelArgs[2] = (void*)&iteration_limit_per_2;
+		kernelArgs[3] = (void*)&(dev_snap);
+		kernelArgs[4] = (void*)&params;
+		kernelArgs[5] = (void*)&kStepStart;
+
+		dim3 dimBlock(32, 32, 1);
+		dim3 dimGrid(8, 8, 1);
+
+		//measure elapsed time
+		std::chrono::steady_clock::time_point begin;
+		std::chrono::steady_clock::time_point end;
+		beginTot = std::chrono::steady_clock::now();
+
+		// Choose which GPU to run on, change this on a multi-GPU system.
+		cudaStatus = cudaSetDevice(DEVICE_ID); CUERR;
+
+		//-----------------------------------------------------------------------------------------------------------
+		//---------------------------------------- GRIDSYNC RESTRUCT INT FRIEND KERNEL -------------------------------
+		//-----------------------------------------------------------------------------------------------------------
+		if (run_gsync_restruct_int_friend)
+		{
+			cout << "gridsync restruct \n";
+			// Allocate GPU buffers
+
+
+			// init(u1, u2, dev_2_u, dev_ua, dev_ub, dev_snap, params, activeSteps)
+			init(u1, u2, &dev_2_u, &dev_ua, &dev_ub, &dev_snap, params, activeSteps); CUERR;
+			// init(u, v, &dev_2_u, &dev_ua, &dev_ub, &dev_v, size, DEVICE_ID, &dev_snap, params, &dev_snap_gradx, &dev_snap_grady); CUERR;
+			cudaDeviceSynchronize();
+			// ---------- Launch a kernel on the GPU with one thread for each element. ----------
+			begin = std::chrono::steady_clock::now();
+			cudaLaunchCooperativeKernel((void*)iterate_snap_segment, dimGrid, dimBlock, kernelArgs);
+			cudaDeviceSynchronize(); CUERR;
+
+			end = std::chrono::steady_clock::now();
+			print_runtimes(begin, end, params);
+
+			// Check for any errors launching the kernel
+			cudaGetLastError(); CUERR;
+
+			// cudaDeviceSynchronize waits for the kernel to finish, and returns
+			// any errors encountered during the launch.
+			cudaDeviceSynchronize(); CUERR;
+
+			
+			// Copy output vector from GPU buffer to host memory.
+			cudaMemcpy(u2, dev_ua, size * sizeof(float), cudaMemcpyDeviceToHost); CUERR;
+			cudaMemcpy(u1, dev_ub, size * sizeof(float), cudaMemcpyDeviceToHost); CUERR;
+
+			if ( params.SNAPSHOT ) { cudaMemcpy(uSnap, dev_snap, size * sizeof(float) * int( activeSteps ), cudaMemcpyDeviceToHost); CUERR; }
+
+			cudaDeviceSynchronize(); CUERR;
+
+			char fname[100];
+			snprintf(fname, sizeof(fname), "u_snap_f_%.2f_df_%.2f_s_%d.bin",params.f, params.df,segment);
+			snap_to_text(uSnap, res, params, fname);
+		}
+
+	// Error:
+		cudaFree(dev_2_u); CUERR;
+		
+		cudaFree(dev_snap); CUERR;
+		
+		delete[] uSnap;
+	}
+	
+    return cudaStatus;
+}
+
+
+cudaError_t iterate_prep(float* u, float* v, float* u_sol, unsigned int size, int res, SimParamStruct params)
+{
     float* dev_ua = 0;
     float* dev_ub = 0;
     float* dev_v = 0;
@@ -92,7 +198,16 @@ cudaError_t iterate_prep(float* u, float* v, float* u_sol, unsigned int size, in
     int iteration_limit_per_2 = params.ITERATIONS / 2;
 
     // cooperative kernel launch parameters
-	if ( params.all ){
+	if ( params.segment ){
+		kernelArgs[0] = (void*)&(dev_ua);
+		kernelArgs[1] = (void*)&(dev_ub);
+		kernelArgs[2] = (void*)&(dev_v);
+		kernelArgs[3] = (void*)&res;
+		kernelArgs[4] = (void*)&iteration_limit_per_2;
+		kernelArgs[5] = (void*)&(dev_snap);
+		kernelArgs[6] = (void*)&params;
+	}
+	else if ( params.all ){
 		kernelArgs[0] = (void*)&(dev_ua);
 		kernelArgs[1] = (void*)&(dev_ub);
 		kernelArgs[2] = (void*)&(dev_v);
@@ -122,7 +237,7 @@ cudaError_t iterate_prep(float* u, float* v, float* u_sol, unsigned int size, in
 	}
 
     dim3 dimBlock(32, 32, 1);
-    dim3 dimGrid(4, 4, 1);
+    dim3 dimGrid(8, 8, 1);
 
     //measure elapsed time
     std::chrono::steady_clock::time_point begin;
@@ -140,7 +255,10 @@ cudaError_t iterate_prep(float* u, float* v, float* u_sol, unsigned int size, in
     {
         cout << "gridsync restruct \n";
         // Allocate GPU buffers
-		if ( params.all){
+		if (params.segment){
+			init(u, v, &dev_2_u, &dev_ua, &dev_ub, &dev_v, size, DEVICE_ID, &dev_snap, params, &dev_snap_gradx, &dev_snap_grady); CUERR;
+		}
+		else if ( params.all){
 			init(u, v, &dev_2_u, &dev_ua, &dev_ub, &dev_v, size, DEVICE_ID, &dev_snap, params, &dev_snap_gradx, &dev_snap_grady); CUERR;
 		}
 		else if ( params.SNAPSHOT ){
@@ -152,7 +270,8 @@ cudaError_t iterate_prep(float* u, float* v, float* u_sol, unsigned int size, in
         cudaDeviceSynchronize();
         // ---------- Launch a kernel on the GPU with one thread for each element. ----------
         begin = std::chrono::steady_clock::now();
-        if ( params.all ){ cudaLaunchCooperativeKernel((void*)iterate_snap_grad, dimGrid, dimBlock, kernelArgs); }
+		// if ( params.segment ){ cudaLaunchCooperativeKernel((void*)iterate_snap_segment, dimGrid, dimBlock, kernelArgs); }
+		if ( params.all ){ cudaLaunchCooperativeKernel((void*)iterate_snap_grad, dimGrid, dimBlock, kernelArgs); }
 		else if ( params.SNAPSHOT ){ cudaLaunchCooperativeKernel((void*)iterate_snap, dimGrid, dimBlock, kernelArgs); }
 		else{ cudaLaunchCooperativeKernel((void*)iterate, dimGrid, dimBlock, kernelArgs); }
         cudaDeviceSynchronize(); CUERR;
@@ -186,9 +305,11 @@ cudaError_t iterate_prep(float* u, float* v, float* u_sol, unsigned int size, in
 		
 		snap_to_text(uSnap, res, params, "u_snap.bin");
 		
-		snap_to_text(uSnapGradx, res, params, "u_snap_gradx.bin");
+		if ( params.all ) {
+			snap_to_text(uSnapGradx, res, params, "u_snap_gradx.bin");
 		
-		snap_to_text(uSnapGrady, res, params, "u_snap_grady.bin");
+			snap_to_text(uSnapGrady, res, params, "u_snap_grady.bin");
+		}
 		
         // test(u, size);
     }

@@ -9,6 +9,7 @@ struct SimParamStruct{
 	int all;
 	int segment;
 	int snap_grad;
+	float lInWavelenght;
 	float f;
 	float c;   // c ~= 1500 m/s, then take its square
 	float c2; 
@@ -45,4 +46,8 @@ struct SimParamStruct{
 	int maxStepPerSegment;
 	int segments;
 	int remainder;
+    float PhaseOffsetAmplitude;
+	float PhaseOffsetAngularVelocity;
 };
+
+

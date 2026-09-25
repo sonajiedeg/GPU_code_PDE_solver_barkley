@@ -91,6 +91,13 @@ void array_to_text(float* u_sol, int res)
     }
 };
 
+void snap_to_text(float* uSnap, SimParamStruct params, const char* fname, int activeSteps)
+{
+	FILE* file = fopen(fname, "wb");
+    fwrite(uSnap, sizeof(float), params.res * params.res * activeSteps , file);
+    fclose(file);
+};
+
 void snap_to_text(float* uSnap, int res, SimParamStruct params, const char* fname, int activeStep)
 {
 	FILE* file = fopen(fname, "wb");

@@ -1,18 +1,27 @@
 #include "param.h"
 #include <cstdio>
 
-SimParamStruct paramSetup(float df = 0.0f){
+SimParamStruct paramSetup(float df = 200.0f){
 	
-	float lInWavelenght = 1.0/2.0;
 	// float res = 256;
 	// int res = 256;
 	SimParamStruct params;
-	params.res = 256;
+	params.lInWavelenght = 1.0/2.0;
+	params.res = 128;
 	params.f = 44e3;
+	params.c = 1482.0f;   // c ~= 1500 m/s, then take its square
+	float pi = 3.14159265359;
+
+	float lambda = params.c / params.f;
+	float dAx = 1623.7864077669904e-6; // maximum measured oscillation amplitude of antinode
+									   //
+	printf("%f\t%f\t%f\n",pi,dAx,1.0f/lambda);
+	params.PhaseOffsetAmplitude = 2.0f * pi * dAx / lambda;
+	params.PhaseOffsetAngularVelocity = 2.0f * pi * df;
 	params.df = df;
-	params.c = 1482;   // c ~= 1500 m/s, then take its square
+	params.c = 1482.0f;   // c ~= 1500 m/s, then take its square
 	params.c2 = params.c * params.c; 
-	params.dx = params.c / params.f * lInWavelenght / (1.0f * params.res); //  m divide
+	params.dx = params.c / params.f * params.lInWavelenght / (1.0f * params.res); //  m divide
 	// params.dx = 1e-3 / 256; // for the validation case
 	// CFL criterion with Courant number C_CFL = smalld by 256
 	// params.dt = 5.859374999999999e-9 / 4;
@@ -21,7 +30,7 @@ SimParamStruct paramSetup(float df = 0.0f){
 	float dt_tmp = params.sigma * params.dx / params.c;
 	float k_tmp = 1 / params.f / dt_tmp;
 	int k = int(k_tmp); // i think this truncates, rounds to floor, good, cfl wont be violated
-	params.dt = 1 / params.f / k;
+	params.dt = 1 / params.f / (1.0f * k);
 
 	// for 9 point stencil
 	params.K = ( params.dt * params.dt * params.c2 ) / ( 6 * params.dx * params.dx ); // ( dt * c^2 ) / ( 6 * dx^2 ) this comes from
@@ -30,29 +39,29 @@ SimParamStruct paramSetup(float df = 0.0f){
 						  // the E.E. time discretization
 						  // and from the 9 point stencil of the Laplace operator
 	// params.bck = 1/2/params.K;					  //
-	params.bck = 1/2/(params.dt*params.dt * params.c*params.c / params.dx / params.dx);
+	params.bck = 1/2.0f/(params.dt*params.dt * params.c*params.c / params.dx / params.dx);
 	params.rho = 998.2;
 	params.d = 1e-6;
 	params.omega = 2 * 3.14159265359 * params.f;
 	params.dx_rho_d_omega2 = params.dx * params.rho * params.d * params.omega * params.omega;
 	params.omega_dt = params.omega * params.dt;
-	params.sin_coeff = params.c / params.f * lInWavelenght / (1.0f * params.res) * params.rho * params.d * params.omega * params.omega;
-	params.Z = 1;
-	params.kappa = ( 1 - params.sigma ) / ( 1 + params.sigma );
+	params.sin_coeff = params.c / params.f * params.lInWavelenght / (1.0f * params.res) * params.rho * params.d * params.omega * params.omega;
+	params.Z = 1.0f;
+	params.kappa = ( 1.0f - params.sigma ) / ( 1.0f + params.sigma );
 
     // ua[0] = ub[0] + dt * Z * c / dx * ( ub[1] - ub[0] )
 	// sommerfeld params
-	params.som1 = 1 / ( 1 + params.dt * params.c * params.Z / params.dx );
-	params.som2 = params.dt * params.c * params.Z / params.dx / ( 1 + params.dt * params.c * params.Z / params.dx );
+	params.som1 = 1.0f / ( 1.0f + params.dt * params.c * params.Z / params.dx );
+	params.som2 = params.dt * params.c * params.Z / params.dx / ( 1.0f + params.dt * params.c * params.Z / params.dx );
 	
-	params.Pa = 2 * 50000; // assigned the forced oscillation amplitide at the transducers
-	params.bcC1 = 1 / ( 1 + params.dt * params.c / params.dx );
-	params.bcC2 = params.dt * params.bcC1 * params.omega;
+	params.Pa = 20000.0f; // assigned the forced oscillation amplitide at the transducers
+	params.bcC1 = 1 / ( 1.0f + params.dt * params.c / params.dx );
+	params.bcC2 = params.Pa * params.dt * params.bcC1 * params.omega;
 	params.bcC3 = params.dt * params.c / params.dx * params.bcC1;
 
-	params.C_amp = 4*4; // it is a unit multiplied by pi: if ==1 => will result in pi
+	params.C_amp = 4.0f*4.0f; // it is a unit multiplied by pi: if ==1 => will result in pi
 	float K = 1 / params.f / params.dt; // T / dt, time period in unit of timesteps
-	params.C_off = 70 * K; // time offset, will turn on the phase offet after this, has unit of [number of oscillations * number of timesteps]
+	params.C_off = 70.0f * K; // time offset, will turn on the phase offet after this, has unit of [number of oscillations * number of timesteps]
 	params.s = 0.001;
 	/*
 	 * c
@@ -67,10 +76,11 @@ SimParamStruct paramSetup(float df = 0.0f){
 	 *		  = ( 3 f res) / ( f 3 sig )
 	 *		  = res / sig
 	*/
-	float t = lInWavelenght / params.f * 12; // i want to set it so it just reaches the other wall
+	// float t = params.lInWavelenght / params.f * 12.0f*80.0f; // i want to set it so it just reaches the other wall
+	float t = 0.005;
 	// t = 2.5e-6; // for the validation case
 	// params.ITERATIONS = round( t / params.dt );
-    params.ITERATIONS = round( t / params.dt / 2 ) * 2;
+    params.ITERATIONS = round( t / params.dt / 2.0f ) * 2.0f;
     // params.ITERATIONS = 4;
 	// params.ITERATIONS = round( t / params.dt / 2 ) * 2 * 3;
 	params.tsc = 100;
@@ -85,9 +95,10 @@ SimParamStruct paramSetup(float df = 0.0f){
 		params.SNAPSHOT = 1;
 		params.SNAP_MODULUS = 1;
 		params.tsc = params.ITERATIONS;
-		params.maxStepPerSegment = 2;
+		params.maxStepPerSegment = 4*1024;
 		params.remainder = params.ITERATIONS % params.maxStepPerSegment;
 		params.segments = ( params.ITERATIONS - params.remainder ) / params.maxStepPerSegment + 1;
+		if (params.remainder == 0){ params.segments -= 1; params.remainder = params.maxStepPerSegment; }
 	}
 	else if(params.all){
 		params.snap_grad = 1;
@@ -95,6 +106,7 @@ SimParamStruct paramSetup(float df = 0.0f){
 		params.SNAP_MODULUS = 1;
 		params.tsc = params.ITERATIONS;
 	}
+	/*
 	printf("f: %f (Hz)\n",params.f);
 	printf("c: %f (m/s)\n",params.c);
 	printf("rho: %f (kg/m^3)\n",params.rho);
@@ -106,12 +118,65 @@ SimParamStruct paramSetup(float df = 0.0f){
 	printf("t_end: %f (s)\n",t);
 	// float tmp = 1.40625014e-06;
 	// printf("1.40625014e-06 == dt: %d (-)\n", tmp == params.dt);
-	printf("t_end / (L / lam) * f: %f (-)\n",t * params.f / lInWavelenght);
-	printf("L / lam: %f (-)\n",lInWavelenght);
-	printf("L: %f (m)\n",params.c / params.f * lInWavelenght);
+	printf("t_end / (L / lam) * f: %f (-)\n",t * params.f / params.lInWavelenght);
+	printf("L / lam: %f (-)\n",params.lInWavelenght);
+	printf("L: %f (m)\n",params.c / params.f * params.lInWavelenght);
 	printf("max step per segment (-): %d\n", params.maxStepPerSegment);
 	printf("remainder (-): %d\n", params.remainder);
 	printf("segments (-): %d\n", params.segments);
+	*/
+
+	printf("CFL actual: %f (-)\n",params.dt * params.c / params.dx);
+	printf("t_end: %f (s)\n",t);
+	printf("t_end / (L / lam) * f: %f (-)\n",t * params.f / params.lInWavelenght);
+	printf("L / lam: %f (-)\n",params.lInWavelenght);
+	printf("L: %f (m)\n",params.c / params.f * params.lInWavelenght);
+	printf("wavelenght: %f (m)\n",params.c / params.f);
+
+
+	printf("res: %d\n",params.res);
+	printf("ITERATIONS: %d\n",params.ITERATIONS);
+	printf("SNAPSHOT: %d\n",params.SNAPSHOT);	
+	printf("SNAP_MODULUS: %d\n",params.SNAP_MODULUS);	
+	printf("tsc: %d\n",params.tsc); 
+	printf("all: %d\n",params.all);
+	printf("segment: %d\n",params.segment);
+	printf("snap_grad: %d\n",params.snap_grad);
+	printf("sigma: %.9g\n",params.sigma);
+	printf("f: %.9g\n",params.f);
+	printf("c: %.9g\n",params.c);   
+	printf("c2: %.9g\n",params.c2); 
+	printf("dx: %.9g\n",params.dx); 
+	printf("sigma: %.9g\n",params.sigma);
+	printf("dt: %.9g\n",params.dt);
+	printf("K: %.9g\n",params.K); 
+	printf("bck: %.9g\n",params.bck);
+	printf("rho: %.9g\n",params.rho);
+	printf("d: %.9g\n",params.d);
+	printf("omega: %.9g\n",params.omega);
+	printf("dx_rho_d_omega2: %.9g\n",params.dx_rho_d_omega2);
+	printf("omega_dt: %.9g\n",params.omega_dt);
+	printf("sin_coeff: %.9g\n",params.sin_coeff);
+	printf("Z: %.9g\n",params.Z);
+	printf("kappa: %.9g\n",params.kappa);
+	printf("Pa: %.9g\n",params.Pa);
+	printf("bcC1: %.9g\n",params.bcC1);
+	printf("bcC2: %.9g\n",params.bcC2);
+	printf("bcC3: %.9g\n",params.bcC3);
+	printf("som1: %.9g\n",params.som1);
+	printf("som2: %.9g\n",params.som2);
+	printf("C_amp: %.9g\n",params.C_amp);
+	printf("C_off: %.9g\n",params.C_off);
+	printf("s: %.9g\n",params.s);
+	printf("df: %.9g\n",params.df);
+	printf("maxStepPerSegment: %d\n",params.maxStepPerSegment);
+	printf("segments: %d\n",params.segments);
+	printf("remainder: %d\n",params.remainder);
+	printf("PhaseOffsetAmplitude: %f\n",params.PhaseOffsetAmplitude);
+	printf("PhaseOffsetAngularVelocity: %f\n",params.PhaseOffsetAngularVelocity);
+
+
+
 
 	// write params to the file
 	char fname[100];
@@ -129,9 +194,9 @@ SimParamStruct paramSetup(float df = 0.0f){
 		fprintf(file, "dx (m)\t\t %.9g\n", params.dx);
 		fprintf(file, "dt (s)\t\t %.9g\n", params.dt);
 		fprintf(file, "t_end (s)\t\t %.9g\n", t);
-		fprintf(file, "t_end / (L / lam) * f (-)\t\t %.9g\n", t * params.f / lInWavelenght);
-		fprintf(file, "L / lam (-)\t\t %.9g\n", lInWavelenght);
-		fprintf(file, "L (m)\t\t %.9g\n", params.c / params.f * lInWavelenght);
+		fprintf(file, "t_end / (L / lam) * f (-)\t\t %.9g\n", t * params.f / params.lInWavelenght);
+		fprintf(file, "L / lam (-)\t\t %.9g\n", params.lInWavelenght);
+		fprintf(file, "L (m)\t\t %.9g\n", params.c / params.f * params.lInWavelenght);
 		fprintf(file, "max step per segment ()\t\t%d \n", params.maxStepPerSegment);
 		fprintf(file, "remainder ()\t\t%d \n", params.remainder);
 		fprintf(file, "segments ()\t\t%d \n", params.segments);
@@ -141,3 +206,88 @@ SimParamStruct paramSetup(float df = 0.0f){
 
 	return params;
 }
+
+void paramSetupBubbleSolver(float* up, float* pp, float* sp, SimParamStruct params){
+
+	float ST = 0.0725; // N/m
+	float R0 = 60e-6; // m
+	float P0 = 101325; // Pa
+	float PV = 0;
+	float pi = 3.14159265359;
+	float Rref = params.c / params.f;
+	float omega = 2*pi*params.f; // Hz
+	float RHO = 998.2; // kg/m^3
+	float PE = P0; // <<<----------------------?????????????????????????
+	float CL = params.c; // m/s
+	float VIS = 0.001; // Pa s
+	// float  = ;
+
+
+	float PG0 = (2.0 * ST / R0 + P0 - PV);
+
+	up[0] = PG0 * std::pow(2.0 * pi / Rref / omega,2.0) / RHO;
+	up[1] = (1.0 - 3.0 * PE) * PG0 * (2.0 * pi / Rref / omega) / CL / RHO;
+	up[2] = R0 / Rref;
+
+	//  Population-specific constants
+	// Keller--Miksis Equation
+	pp[0] = (P0 - PV) * std::pow(2.0 *pi / Rref / omega,2.0) / RHO;                 // C0
+	pp[1] = (2.0 * ST / Rref / RHO) * std::pow(2.0 * pi / Rref / omega,2.0);        // C1
+	pp[2] = 4.0 * VIS / RHO / (Rref*Rref) * (2.0* pi / omega);               // C2
+	pp[3] = (std::pow(2.0 * pi / Rref / omega,2.0)) / RHO;                          // C3
+	pp[4] = (std::pow(2.0 * pi / omega,2.0)) / CL / RHO / Rref;                    // C4
+	pp[5] = Rref * omega / (2 * pi) / CL;                                    // C5
+	// Translational Motion
+	pp[6] = 2.0 * pi / std::pow(Rref*Rref * omega,2.0) / RHO;                           // C6
+	pp[7] = 4.0 * pi / 3 * std::pow(Rref,3.0);                                          // C7
+	pp[8] = 12.0 * pi * VIS * Rref;                                          // C8
+	pp[9] = Rref * omega / (2.0 * pi);                                       // C9
+	pp[10] = 36.0 * pi / omega / (Rref*Rref) * VIS / RHO;                         // C10 (csak ha van coupling)
+	pp[11] = Rref;
+
+
+	// System-specific constants
+	sp[0] = 3.0 * PE;
+	sp[1] = 1.0 / omega;
+	sp[2] = omega / CL;
+}
+/*
+def ode_fun(t, x, args):
+	up = args.up
+	pp = args.pp
+	sp = args.sp
+	# Radial Oscillation
+	R = x[0]        # Dimensionless Radius
+	U = x[2]        # Dimensionless Wall velocity
+	px =x[1]        # Dimensionless position
+	vx =x[3]        # Dimensionless translation velocity
+
+	
+	F = np.zeros_like(x)
+	inv_R = 1.0 / R
+	p = (up[2] * inv_R)**sp[0]
+
+	pa, pat, gradp = field(t, x)
+
+	# -- Radial Oscillation --
+	N = (up[0] + up[1]*U) * p \
+		- pp[0] * (1 + pp[5]*U) - pp[1] * inv_R - pp[2]*U*inv_R \
+		- 1.5 * (1.0 - pp[5]*U * (1.0/3.0))*U*U \
+		- (1 + pp[5]*U) * pp[3] * pa - pp[4] * pat * R \
+		+ 0.25 * vx * vx
+		
+
+	D = R - pp[5]*R*U + pp[2]*pp[5]
+	rD = 1.0 / D
+	# -- Translational motion --
+	Fb = -pp[7]*R*R*R * gradp            # Primary Bjerknes Force
+	Fd = -pp[8]*R * (vx * pp[9] - u)     # Drag Force
+	dv = 3*(Fb + Fd)*pp[6]*inv_R*inv_R*inv_R - 3.0*U*inv_R*vx
+
+	F[0] = U
+	F[1] = vx
+	F[2] = rD * N
+	F[3] = dv
+
+	return F
+	*/

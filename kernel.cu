@@ -4,6 +4,7 @@
 
 
 #define run_gsync_restruct_int_friend 1
+#define run_bubble_solver 1
 #define DEVICE_ID 0
 // #define ITERATIONS 1000000
 
@@ -37,6 +38,7 @@ cudaError_t err;																				\
 #ifdef __INTELLISENSE__
 #undef __CUDACC__
 #endif // __INTELLISENSE__
+#include "solve2.cuh"
 
 using namespace std;
 using namespace cooperative_groups;
@@ -50,7 +52,7 @@ void print_runtimes(std::chrono::steady_clock::time_point begin, std::chrono::st
 
 int main()
 {
-    const unsigned int res = 256;
+    const unsigned int res = 128; // swich
     const unsigned int size = res * res;
     float* u = new float[size];
     float* v = new float[size];
@@ -61,7 +63,8 @@ int main()
     // Add vectors in parallel.
 	cudaError_t cudaStatus;
 	SimParamStruct params = paramSetup();
-	if(params.segment){ cudaStatus = iterate_prep_segment(u, v, u_sol, size, res, params); CUERR; }
+	if(params.segment){ cudaStatus = solve2(u, v, u_sol, size, res, params); CUERR; }
+    // if(params.segment){ cudaStatus = iterate_prep_segment(u, v, u_sol, size, res, params); CUERR; }
 	else{ cudaStatus = iterate_prep(u, v, u_sol, size, res, params); CUERR; }
     // array_to_text(u, res);
 	
@@ -86,43 +89,49 @@ cudaError_t iterate_prep_segment(float* u, float* v, float* u_sol, unsigned int 
 	for(int i = 0; i<size; i++){ u1[i]=u[i]; u2[i]=u[i]; }
 	cudaError_t cudaStatus;
 	int iteration_limit_per_2 = 0;
+
+	int activeSteps;
+	float* dev_ua = 0;
+	float* dev_ub = 0;
+	float* dev_2_u = 0;
+	float* dev_snap = 0;
+	void* kernelArgs[6];
+	int kStepStart = 0;
+	kernelArgs[0] = (void*)&(dev_ua);
+	kernelArgs[1] = (void*)&(dev_ub);
+	kernelArgs[2] = (void*)&iteration_limit_per_2;
+	kernelArgs[3] = (void*)&(dev_snap);
+	kernelArgs[4] = (void*)&params;
+	kernelArgs[5] = (void*)&kStepStart;
+
+	dim3 dimBlock(32, 32, 1);
+	dim3 dimGrid(4, 4, 1); // swich
+
 	//measure elapsed time
 	std::chrono::steady_clock::time_point beginTot;
 	std::chrono::steady_clock::time_point endTot;
 
+	beginTot = std::chrono::steady_clock::now();
+
 
 	for(int segment = 0; segment < params.segments; segment++ )
 	{
-		int activeSteps = ( segment < params.segments-1 ) ? params.maxStepPerSegment : params.remainder;
-		float* dev_ua = 0;
-		float* dev_ub = 0;
-		float* dev_2_u = 0;
-		float* dev_snap = 0;
-		void* kernelArgs[5];
+		activeSteps = ( segment < params.segments-1 ) ? params.maxStepPerSegment : params.remainder;
 		float* uSnap = new float[ size * int( activeSteps ) ];
 
 		//measure at this iteration
 		iteration_limit_per_2 += activeSteps / 2;
-		printf("active steps: %d\n", activeSteps);
-		printf("iter lim / 2: %d\n", iteration_limit_per_2);
+		// printf("active steps: %d\n", activeSteps);
+		// printf("iter lim / 2: %d\n", iteration_limit_per_2);
+		printf("segment/segments: %d / %d \n", segment, params.segments);
 
-		int kStepStart = segment * params.maxStepPerSegment / 2;
+		kStepStart = segment * params.maxStepPerSegment / 2;
 
 		// cooperative kernel launch parameters
-		kernelArgs[0] = (void*)&(dev_ua);
-		kernelArgs[1] = (void*)&(dev_ub);
-		kernelArgs[2] = (void*)&iteration_limit_per_2;
-		kernelArgs[3] = (void*)&(dev_snap);
-		kernelArgs[4] = (void*)&params;
-		kernelArgs[5] = (void*)&kStepStart;
-
-		dim3 dimBlock(32, 32, 1);
-		dim3 dimGrid(8, 8, 1);
-
+		
 		//measure elapsed time
-		std::chrono::steady_clock::time_point begin;
-		std::chrono::steady_clock::time_point end;
-		beginTot = std::chrono::steady_clock::now();
+		// std::chrono::steady_clock::time_point begin;
+		// std::chrono::steady_clock::time_point end;
 
 		// Choose which GPU to run on, change this on a multi-GPU system.
 		cudaStatus = cudaSetDevice(DEVICE_ID); CUERR;
@@ -132,7 +141,7 @@ cudaError_t iterate_prep_segment(float* u, float* v, float* u_sol, unsigned int 
 		//-----------------------------------------------------------------------------------------------------------
 		if (run_gsync_restruct_int_friend)
 		{
-			cout << "gridsync restruct \n";
+			// cout << "gridsync restruct \n";
 			// Allocate GPU buffers
 
 
@@ -141,12 +150,12 @@ cudaError_t iterate_prep_segment(float* u, float* v, float* u_sol, unsigned int 
 			// init(u, v, &dev_2_u, &dev_ua, &dev_ub, &dev_v, size, DEVICE_ID, &dev_snap, params, &dev_snap_gradx, &dev_snap_grady); CUERR;
 			cudaDeviceSynchronize();
 			// ---------- Launch a kernel on the GPU with one thread for each element. ----------
-			begin = std::chrono::steady_clock::now();
+			// begin = std::chrono::steady_clock::now();
 			cudaLaunchCooperativeKernel((void*)iterate_snap_segment, dimGrid, dimBlock, kernelArgs);
 			cudaDeviceSynchronize(); CUERR;
 
-			end = std::chrono::steady_clock::now();
-			print_runtimes(begin, end, params);
+			// end = std::chrono::steady_clock::now();
+			// print_runtimes(begin, end, params);
 
 			// Check for any errors launching the kernel
 			cudaGetLastError(); CUERR;
@@ -166,7 +175,7 @@ cudaError_t iterate_prep_segment(float* u, float* v, float* u_sol, unsigned int 
 
 			char fname[100];
 			snprintf(fname, sizeof(fname), "u_snap_f_%.2f_df_%.2f_s_%d.bin",params.f, params.df,segment);
-			snap_to_text(uSnap, res, params, fname);
+			snap_to_text(uSnap, params, fname, activeSteps);
 		}
 
 	// Error:
@@ -176,6 +185,9 @@ cudaError_t iterate_prep_segment(float* u, float* v, float* u_sol, unsigned int 
 		
 		delete[] uSnap;
 	}
+
+	endTot = std::chrono::steady_clock::now();
+	print_runtimes(beginTot, endTot, params);
 	
     return cudaStatus;
 }
@@ -237,7 +249,7 @@ cudaError_t iterate_prep(float* u, float* v, float* u_sol, unsigned int size, in
 	}
 
     dim3 dimBlock(32, 32, 1);
-    dim3 dimGrid(8, 8, 1);
+    dim3 dimGrid(4, 4, 1);
 
     //measure elapsed time
     std::chrono::steady_clock::time_point begin;

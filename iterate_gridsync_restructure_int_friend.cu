@@ -558,8 +558,9 @@ static __device__ __forceinline__ void copy_r_to_g_and_no_flux_int_friend(float*
 	*/
 	// Kalmi's transducer
     if (i_eq_1) {
-		if ( 63 <= j && j <= 192 ) {
-			float phase_offset = 3.14159265359 * 1 * (k / 10236.0 );
+		if ( 32 <= j && j <= 96-1 ) {
+			// float phase_offset = 3.14159265359 * 1 * (k / 10236.0 );
+			float phase_offset = 0.0;
 			float r_u_tmp = params.bcC1 * (*r_u1_bc) + params.bcC3 * r_u2 - params.bcC2 * __sinf( params.omega_dt * k - phase_offset );
 			g_u2[threadoffset_m_one] = r_u_tmp;
 			(*r_u1_bc) = r_u_tmp;
@@ -617,8 +618,13 @@ static __device__ __forceinline__ void copy_r_to_g_and_no_flux_int_friend(float*
 #elif eBC == 4
 // Kalmi's transducer
     if (i_eq_res_m_2) {
-		if ( 63 <= j && j <= 192 ) {
-			float phase_offset = 3.14159265359 * 1 * (k / 10236.0 );
+		if ( 32 <= j && j <= 96-1 ) {
+			// float phase_offset = 3.14159265359 * 1 * (k / 10236.0 );
+			float phase_offset = params.PhaseOffsetAmplitude*__sinf(params.PhaseOffsetAngularVelocity*params.dt*k);
+			// if(j==32&&k%200==0){printf("phase offset amp: %f\n",params.PhaseOffsetAmplitude);};
+			// if(j==32&&k%200==0){printf("phase offset in sin: %f\n",params.PhaseOffsetAngularVelocity*params.dt*k);};
+			// if(j==32&&k%200==0){printf("phase offset sin: %f\n",__sinf(params.PhaseOffsetAngularVelocity*params.dt*k));};
+			// if(j==32&&k%200==0){printf("phase offset: %f\n",phase_offset);};
 			// if (k<=5120) { phase_offset = 3.14159265359 * params.C_amp * ( 3.14159265359*0.5 + atanf( params.s * (k - params.C_off ) ) ); }
 			// if (k<=10240) { phase_offset = 4*3.14159265359*sinf( k / 3.14159265359 / 2560 ); }
 			// if (k<=10240) { phase_offset = 4*3.14159265359*k/10240; }

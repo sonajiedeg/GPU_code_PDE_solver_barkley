@@ -21,3 +21,9 @@ nTest.exe:
 
 1d.exe:
 	nvcc -o 1d.exe 1d.cu $(CMPL_OPT)
+
+sep:
+	rm -f separated.exe
+	nvcc -o	separated.exe separated.cu $(CMPL_OPT)
+	./separated.exe
+

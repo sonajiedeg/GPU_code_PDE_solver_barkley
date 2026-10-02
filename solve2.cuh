@@ -61,10 +61,10 @@ cudaError_t solve2(float* u, float* v, float* u_sol, unsigned int size, int res,
 	kernelArgs[5] = (void*)&kStepStart;
 
 	dim3 dimBlock(32, 32, 1);
-	dim3 dimGrid(4, 4, 1); // swich
+	dim3 dimGrid(8, 8, 1); // swich
 
 	// setup bubble solver params
-	int itLim = 1000000;
+	unsigned long long int itLim = 100000;
 	float abstol = 1e-5;
 	float t0,t1,tSegmentEnd,x0,x1,v0,v1,y0,y1,w0,w1,p0,pb,dpdx,dpdy,dpdt,dpdtdx,tmp;
 	float pArr[8];
@@ -102,10 +102,38 @@ cudaError_t solve2(float* u, float* v, float* u_sol, unsigned int size, int res,
 
 		State F(Y.size(), 0.0);
 
-		float inv_R = 1.0 / R;
-		float p = (float)std::pow(up[2] * inv_R,sp[0]);
+		// float inv_R = 1.0 / R;
+		/*
+		printf("0\t%f\n",up[2]);
+		printf("1\t%f\n",inv_R);
+		printf("2\t%f\n",sp[0]);
+		printf("3\t%f\n",std::pow(up[2] * inv_R,sp[0]));
+		printf("4\t%f\n",(float)std::pow(up[2] * inv_R,sp[0]));
+		printf("5\t%f\n",up[2]*inv_R);
+		*/
+
+		// 1. Prevent R from becoming perfectly zero or negative (numerical artifact)
+		if (R <= 1e-9f) {
+			return { 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f }; // Freeze state to prevent NaN cascade
+		}
+
+		float inv_R = 1.0f / R;
+    
+		// 2. Prevent negative base in std::pow
+		float base = up[2] * inv_R;
+		if (base <= 0.0f) base = 1e-9f; 
+		float p = (float)std::pow(base, sp[0]);
+
+		// float p = (float)std::pow(up[2] * inv_R,sp[0]);
 
 		// -- Radial Oscillation --
+
+		/*
+		if( U != U ){ printf("7yay\n"); };
+		if( vx != vx ){ printf("8yay\n"); };
+		if( p != p ){ printf("9yay\n"); };
+		if( R != R ){ printf("10yay\n"); };
+		*/
 		float N = (up[0] + up[1]*U) * p; 
 		N-= pp[0] * (1 + pp[5]*U) - pp[1] * inv_R - pp[2]*U*inv_R;
 		N-= 1.5 * (1.0 - pp[5]*U * (1.0/3.0))*U*U;
@@ -122,10 +150,13 @@ cudaError_t solve2(float* u, float* v, float* u_sol, unsigned int size, int res,
 		// hereby, u(x,t) is the liquid velocity induced by the acousitc irradiaiton calculated at the center of the bubble [ref...]
 		float dv = 3*(Fb + Fd)*pp[6]*inv_R*inv_R*inv_R - 3.0*U*inv_R*vx;
 
+		// if( N != N ){ printf("6yay\n"); };
 		F[0] = U;
-		F[1] = vx;
+		F[1] = 0.0 * vx;
+		F[2] = 0.0;
 		F[3] = rD * N;
-		F[4] = dv;
+		F[4] = 0.0 * dv;
+		F[5] = 0.0;
 
         return { F[0], F[1], F[2], F[3], F[4], F[5] };
     };
@@ -146,7 +177,7 @@ cudaError_t solve2(float* u, float* v, float* u_sol, unsigned int size, int res,
     a[5][0] = -8.0 / 27.0;      a[5][1] = 2.0;               a[5][2] = -3544.0 / 2565.0;  a[5][3] = 1859.0 / 4104.0;  a[5][4] = -11.0 / 40.0;
 
 	// const State ic = { 10.f, 0.0f, 0, 0, 0, 0 };
-	const State ic = { 1.0f, x0/(params.c/params.f), y0/(params.c/params.f), 0, 0, 0 }; // R x y U vx vy
+	const State ic = { 1.0f, x0/(params.c/params.f)*1.05f, y0/(params.c/params.f), 0, 0, 0 }; // R x y U vx vy
     int num_eq = ic.size();
     
     // Initialize results structure
@@ -157,8 +188,11 @@ cudaError_t solve2(float* u, float* v, float* u_sol, unsigned int size, int res,
     // Set parameters for error control
 	// float h_init = params.dt / 4.0f;
 	float h_init = 1e-6;
-	// float h_max = params.dt / 2.0f;
-	float h_max = params.dt * params.f / 2;
+	float h_max = params.dt / 2.0f;
+	float h_min = 1e-12;
+	// float h_max = params.dt * params.f / 2.0f;
+	// float h_init = h_max;
+	// float h_max = 1e-9;
     float h = h_init;
     float abstolmin = abstol * 0.1;
     float abstolmax = abstol * 10.0;
@@ -175,14 +209,15 @@ cudaError_t solve2(float* u, float* v, float* u_sol, unsigned int size, int res,
 	for(int segment = 0; segment < params.segments; segment++ )
 	{
 		activeSteps = ( segment < params.segments-1 ) ? params.maxStepPerSegment : params.remainder;
-		float* uSnap = new float[ size * int( activeSteps ) ];
+		size_t snapSize = (size_t)size * (size_t)activeSteps ;
+		float* uSnap = new float[ snapSize];
 
 
 		//measure at this iteration
 		iteration_limit_per_2 += activeSteps / 2;
 		// printf("active steps: %d\n", activeSteps);
 		// printf("iter lim / 2: %d\n", iteration_limit_per_2);
-		printf("segment/segments: %d / %d \n", segment, params.segments);
+		// printf("segment/segments: %d / %d \n", segment, params.segments);
 
 		kStepStart = segment * params.maxStepPerSegment / 2;
 
@@ -194,6 +229,7 @@ cudaError_t solve2(float* u, float* v, float* u_sol, unsigned int size, int res,
 
 		// Choose which GPU to run on, change this on a multi-GPU system.
 		cudaStatus = cudaSetDevice(DEVICE_ID); CUERR;
+		PASS
 
 		//-----------------------------------------------------------------------------------------------------------
 		//---------------------------------------- GRIDSYNC RESTRUCT INT FRIEND KERNEL -------------------------------
@@ -225,40 +261,48 @@ cudaError_t solve2(float* u, float* v, float* u_sol, unsigned int size, int res,
 
 			
 			// Copy output vector from GPU buffer to host memory.
-			cudaMemcpy(u2, dev_ua, size * sizeof(float), cudaMemcpyDeviceToHost); CUERR;
-			cudaMemcpy(u1, dev_ub, size * sizeof(float), cudaMemcpyDeviceToHost); CUERR;
+			cudaMemcpy(u2, dev_ua, (size_t)size * (size_t)sizeof(float), cudaMemcpyDeviceToHost); CUERR;
+			cudaMemcpy(u1, dev_ub, (size_t)size * (size_t)sizeof(float), cudaMemcpyDeviceToHost); CUERR;
 
-			if ( params.SNAPSHOT ) { cudaMemcpy(uSnap, dev_snap, size * sizeof(float) * int( activeSteps ), cudaMemcpyDeviceToHost); CUERR; }
+			if ( params.SNAPSHOT ) { cudaMemcpy(uSnap, dev_snap, (size_t)size * (size_t)sizeof(float) * (size_t)activeSteps, cudaMemcpyDeviceToHost); CUERR; }
 
 			cudaDeviceSynchronize(); CUERR;
 
 			char fname[100];
 			snprintf(fname, sizeof(fname), "u_snap_f_%.2f_df_%.2f_s_%d.bin",params.f, params.df,segment);
 			snap_to_text(uSnap, params, fname, activeSteps);
+			PASS
 
 			
 		}
+		PASS
 
 
 		if(run_bubble_solver)
 		{
+			// where to start the time????
 			tSegmentEnd = ( segment * params.maxStepPerSegment + activeSteps ) * params.dt;
-			int it = 0;
+			int it = 0; // step counter
+			int eit = 0; // error iteration counter
+
+			State y_next(num_eq, 0.0);
+			State yh(num_eq, 0.0);
+			std::vector<State> k(6, State(num_eq, 0.0));
+
 			while(sol.t.back() < tSegmentEnd*params.f && it < itLim)
 			{
 					
 				bool error_not_in_range = true;
-				State y_next(num_eq, 0.0);
-				State yh(num_eq, 0.0);
-				float max_err = 0.0;
+								float max_err = 0.0;
 				float current_accepted_h = h;
-
-				while (error_not_in_range) {
+				eit = 0;
+				while (error_not_in_range && eit < itLim) {
+					// printf("segment: %d\t it: %d\t eit: %d\n",segment,it,eit);
 					loadp(pArr, uSnap, sol.y.back(), sol.t.back(), params, segment);
-					interp(pArr, sol.y.back(), sol.t.back(), &pb, &dpdx, &dpdy, &dpdy, &dpdtdx, params);
+					interp(pArr, sol.y.back(), sol.t.back(), &pb, &dpdx, &dpdy, &dpdt, &dpdtdx, params);
+					// pb+=0.0;
 					pb+=p0;
 
-					std::vector<State> k(6, State(num_eq, 0.0));
 
 					// Walk through the 6 stages
 					for (int j = 0; j < 6; j++) {
@@ -270,7 +314,18 @@ cudaError_t solve2(float* u, float* v, float* u_sol, unsigned int size, int res,
 								}
 							}
 						}
+						/*
+						if( pb!=pb){ printf("yay yay yay\n"); };
+						if( dpdx!=dpdx){ printf("yay yay yay\n"); };
+						if( dpdy!=dpdy){ printf("yay yay yay\n"); };
+						if( dpdt!=dpdt){ printf("yay yay yay\n"); };
+						if( dpdtdx!=dpdtdx){ printf("yay yay yay\n"); };
+						for (int dim = 0; dim < num_eq; dim++) {
+							if(Y[dim]!=Y[dim]){ printf("5yay%d\n",dim); }
+						}
+						*/
 						k[j] = dSdt(Y,pb,dpdx,dpdy,dpdt,dpdtdx,up,pp,sp,params); // Evaluate function
+						// if( k[j] != k[j] ){ printf("yay yay yay yay%d\n",j); }
 					}
 					// Calculate 4th order estimate (y_next)
 					y_next = sol.y.back();
@@ -301,13 +356,21 @@ cudaError_t solve2(float* u, float* v, float* u_sol, unsigned int size, int res,
 						sum_err += e;
 					}
 
-					if (sum_err == 0.0f) sum_err = 1e-15f;
+					// if (sum_err == 0.0f) sum_err = 1e-15f;
 
 					// Manipulate step size accordingly
 					if (max_err > abstolmax) {
-						// Step solution rejected
-						error_not_in_range = true;
-						h = std::pow((frac * abstol) / sum_err, 1.0 / (p + 1.0)) * h;
+						if(h < h_min){
+							printf("WARNING: absolute error tolerance of %f was not reached\n",abstol);
+							current_accepted_h = h;
+							error_not_in_range = false;
+						}
+						else{
+							// Step solution rejected
+							error_not_in_range = true;
+							float h_tmp = std::pow((frac * abstol) / sum_err, 1.0 / (p + 1.0)) * h;
+							h = (h_tmp < h_min) ? h_min : h_tmp;
+						}
 
 						// h = std::max(1e-8f, (float)std::pow((frac * abstol) / sum_err, 1.0 / (p + 1.0)) * h);
 					}
@@ -321,14 +384,19 @@ cudaError_t solve2(float* u, float* v, float* u_sol, unsigned int size, int res,
 						if (h_tmp <= h_max) {
 							h = h_tmp; // Prepare step size for NEXT iteration
 						}
+						else { h = h_max; }
 					}
 					else {
 						// Step solution accepted, optimal range
 						error_not_in_range = false;
 						current_accepted_h = h;
 					}
+					eit += 1;
+					// if(eit%100 == 0 ){ printf("error iteration step: %d\n",eit); }
+					// if(eit == itLim){ printf("error iteration limit hit\n"); }
 				} // End of one step attempt (rejected => repeated)
 				// Store accepted values
+				// if(y_next[1] != y_next[1]){ printf("yayay\n"); }
 				sol.y.push_back(y_next);
 				sol.error.push_back(max_err);
 				sol.H.push_back(current_accepted_h);
@@ -339,8 +407,32 @@ cudaError_t solve2(float* u, float* v, float* u_sol, unsigned int size, int res,
 
 				// ode45();
 				it+=1;
-				if(it == itLim){printf("iteration limit hit\n");}
-			}
+				// if(it%100 == 0 ){ printf("timestep: %d\n",it); }
+				// if(it == itLim){printf("iteration limit hit\n");}
+			} // end of RK45 timesteps
+
+			printf("size: %lu\n",sol.t.size());
+			char fname[100];
+			snprintf(fname, sizeof(fname), "R_%.0f_df_%.0f.txt",params.f/1000.0, params.df);
+			solSave(fname, sol.get_state_series(0), params);
+
+			snprintf(fname, sizeof(fname), "x_%.0f_df_%.0f.txt",params.f/1000.0, params.df);
+			solSave(fname, sol.get_state_series(1), params);
+
+			snprintf(fname, sizeof(fname), "y_%.0f_df_%.0f.txt",params.f/1000.0, params.df);
+			solSave(fname, sol.get_state_series(2), params);
+
+			snprintf(fname, sizeof(fname), "t_%.0f_df_%.0f.txt",params.f/1000.0, params.df);
+			solSave(fname, sol.t, params);
+
+			snprintf(fname, sizeof(fname), "H_%.0f_df_%.0f.txt",params.f/1000.0, params.df);
+			solSave(fname, sol.H, params);
+
+			snprintf(fname, sizeof(fname), "e_%.0f_df_%.0f.txt",params.f/1000.0, params.df);
+			solSave(fname, sol.error, params);
+
+			PASS
+
 		}
 
 	// Error:
@@ -349,23 +441,34 @@ cudaError_t solve2(float* u, float* v, float* u_sol, unsigned int size, int res,
 		cudaFree(dev_snap); CUERR;
 		
 		delete[] uSnap;
-	}
+	} // end of segment iterations
 
 	endTot = std::chrono::steady_clock::now();
 	print_runtimes(beginTot, endTot, params);
 	
+	/*
 	char fname[100];
-	snprintf(fname, sizeof(fname), "R_%.2f_df_%.2f_s_%d.txt",params.f, params.df,0);
+	snprintf(fname, sizeof(fname), "R_%.0f_df_%.0f.txt",params.f/1000.0, params.df,0);
+	// snprintf(fname, sizeof(fname), "R_%.2f_df_%.2f_s_%d.txt",params.f, params.df,0);
 	printf("size: %lu\n",sol.t.size());
 	solSave(fname, sol.get_state_series(1), params);
-	snprintf(fname, sizeof(fname), "x_%.2f_df_%.2f_s_%d.txt",params.f, params.df,0);
+	snprintf(fname, sizeof(fname), "x_%.0f_df_%.0f.txt",params.f/1000.0, params.df,0);
+	// snprintf(fname, sizeof(fname), "x_%.2f_df_%.2f_s_%d.txt",params.f, params.df,0);
 	solSave(fname, sol.get_state_series(3), params);
-	snprintf(fname, sizeof(fname), "y_%.2f_df_%.2f_s_%d.txt",params.f, params.df,0);
+	snprintf(fname, sizeof(fname), "y_%.0f_df_%.0f.txt",params.f/1000.0, params.df,0);
+	// snprintf(fname, sizeof(fname), "y_%.2f_df_%.2f_s_%d.txt",params.f, params.df,0);
 	solSave(fname, sol.get_state_series(5), params);
-	snprintf(fname, sizeof(fname), "t_%.2f_df_%.2f_s_%d.txt",params.f, params.df,0);
+	snprintf(fname, sizeof(fname), "t_%.0f_df_%.0f.txt",params.f/1000.0, params.df,0);
+	// snprintf(fname, sizeof(fname), "t_%.2f_df_%.2f_s_%d.txt",params.f, params.df,0);
 	solSave(fname, sol.t, params);
+	*/
 
    
+	delete[] u1;
+	delete[] u2;
+	delete[] S0;
+	delete[] S1;
+
     return cudaStatus;
 }
 

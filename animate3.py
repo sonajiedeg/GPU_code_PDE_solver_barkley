@@ -6,7 +6,7 @@ from matplotlib.animation import FuncAnimation
 # --- 1. CONFIGURATION ---
 LABEL = 12
 FONT = 18
-res = 128 
+res = 256 
 # dt = 5.859374999999999e-09 / 4
 # dt = 4.71698115e-07
 # dt = 1.17370888e-07
@@ -18,9 +18,9 @@ p0 = 101325 # Pa
 
 PHASE_SNAP = True 
 # Choose your mode: 'heatmap_anim', 'line_anim', 'line_static', or 'point_static'
-# RUN_MODE = 'heatmap_anim'
+RUN_MODE = 'heatmap_anim'
 # RUN_MODE = 'line_anim'
-RUN_MODE = 'line_anim_phase_snap'
+# RUN_MODE = 'line_anim_phase_snap'
 # RUN_MODE = 'line_static'
 # RUN_MODE = 'point_static'
 
@@ -28,7 +28,7 @@ RUN_MODE = 'line_anim_phase_snap'
 ani_name = 'hmap_name_tmp'
 
 # choose file to read
-fname = 'u_snap_f_44000.00_df_200.00_s_17.bin'
+fname = 'u_snap_f_44000.00_df_200.00_s_0.bin'
 # fname = 'u_snap_f_44000.00_df_200.00_s_8.bin'
 # fname = 'u_snap.bin'
 # fname = 'u_snap_gradx.bin'

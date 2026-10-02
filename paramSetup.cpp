@@ -1,3 +1,4 @@
+#pragma once
 #include "param.h"
 #include <cstdio>
 
@@ -7,8 +8,8 @@ SimParamStruct paramSetup(float df = 200.0f){
 	// int res = 256;
 	SimParamStruct params;
 	params.lInWavelenght = 1.0/2.0;
-	params.res = 128;
-	params.f = 44e3;
+	params.res = 256;
+	params.f = 25e3;
 	params.c = 1482.0f;   // c ~= 1500 m/s, then take its square
 	float pi = 3.14159265359;
 
@@ -54,7 +55,7 @@ SimParamStruct paramSetup(float df = 200.0f){
 	params.som1 = 1.0f / ( 1.0f + params.dt * params.c * params.Z / params.dx );
 	params.som2 = params.dt * params.c * params.Z / params.dx / ( 1.0f + params.dt * params.c * params.Z / params.dx );
 	
-	params.Pa = 20000.0f; // assigned the forced oscillation amplitide at the transducers
+	params.Pa = 75000.0f; // assigned the forced oscillation amplitide at the transducers
 	params.bcC1 = 1 / ( 1.0f + params.dt * params.c / params.dx );
 	params.bcC2 = params.Pa * params.dt * params.bcC1 * params.omega;
 	params.bcC3 = params.dt * params.c / params.dx * params.bcC1;
@@ -207,23 +208,24 @@ SimParamStruct paramSetup(float df = 200.0f){
 	return params;
 }
 
-void paramSetupBubbleSolver(float* up, float* pp, float* sp, SimParamStruct params){
+void paramSetupBubbleSolver(double* up, double* pp, double* sp, SimParamStruct params){
 
-	float ST = 0.0725; // N/m
-	float R0 = 60e-6; // m
-	float P0 = 101325; // Pa
-	float PV = 0;
-	float pi = 3.14159265359;
-	float Rref = params.c / params.f;
-	float omega = 2*pi*params.f; // Hz
-	float RHO = 998.2; // kg/m^3
-	float PE = P0; // <<<----------------------?????????????????????????
-	float CL = params.c; // m/s
-	float VIS = 0.001; // Pa s
-	// float  = ;
+	double ST = 0.0725; // N/m
+	double R0 = 80e-6; // m
+	double P0 = 101325; // Pa
+	double PV = 0.0;
+	double pi = 3.14159265359;
+	// double Rref = params.c / params.f;
+	double Rref = R0;
+	double omega = 2*pi*params.f; // Hz
+	double RHO = 998.2; // kg/m^3
+	double PE = 1.4; // <<<----------------------?????????????????????????
+	double CL = params.c; // m/s
+	double VIS = 0.001; // Pa s
+	// double  = Z;
 
 
-	float PG0 = (2.0 * ST / R0 + P0 - PV);
+	double PG0 = (2.0 * ST / R0 + P0 - PV);
 
 	up[0] = PG0 * std::pow(2.0 * pi / Rref / omega,2.0) / RHO;
 	up[1] = (1.0 - 3.0 * PE) * PG0 * (2.0 * pi / Rref / omega) / CL / RHO;

@@ -52,7 +52,7 @@ void print_runtimes(std::chrono::steady_clock::time_point begin, std::chrono::st
 
 int main()
 {
-    const unsigned int res = 128; // swich
+    const unsigned int res = 256; // swich
     const unsigned int size = res * res;
     float* u = new float[size];
     float* v = new float[size];

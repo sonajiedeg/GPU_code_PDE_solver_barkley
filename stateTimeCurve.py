@@ -10,7 +10,7 @@ def read_and_plot(filenameX, filenameY):
     print("----------->",t.size, y.size)
 
     plt.figure(figsize=(10, 5))
-    plt.plot(t, y, label="sol.y", color="b", linestyle="--", marker="o", linewidth=1.5)
+    plt.plot(t[:], y, label="sol.y", color="b", linestyle="-", linewidth=1.5)
     plt.xlabel("Time (sol.t)")
     plt.ylabel("State (sol.y)")
     plt.title("Solution Plot")
@@ -20,7 +20,8 @@ def read_and_plot(filenameX, filenameY):
     plt.show()
 
 
-read_and_plot("t_44000.00_df_200.00_s_0.txt", "x_44000.00_df_200.00_s_0.txt")
+# read_and_plot("t_44000.00_df_200.00_s_0.txt", "x_44000.00_df_200.00_s_0.txt")
+read_and_plot("t_25_df_200.txt", "R_25_df_200.txt")
 
 
 

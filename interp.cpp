@@ -1,7 +1,10 @@
+#pragma once
 #include <iostream>
 #include <vector>
+#include <math.h>
+#define _USE_MATH_DEFINES
 
-using State = std::vector<float>;
+using State = std::vector<double>;
 
 void interp(float* pArr, const State& st, float tau,float* p,float* dpdx,float* dpdy,float* dpdt,float* dpdtdx, SimParamStruct params){
 	float x = st[1] * (params.c/params.f);
@@ -60,4 +63,14 @@ void interp(float* pArr, const State& st, float tau,float* p,float* dpdx,float* 
 	dpdtdx1 =  ( dpdtdx11 - dpdtdx01 ) / params.dx;
 	*dpdtdx = dpdtdx0 * (1 - yd) + dpdtdx1 * yd;
 
+}
+
+
+void interpSep(const State& st, double tau,double* p,double* dpdx,double* dpdy,double* dpdt,double* dpdtdx, SimParamStruct params){
+	double xi = st[1];
+	*p = params.Pa * std::cos(2*M_PI*xi) * std::sin(2*M_PI*tau);
+	*dpdx = - params.Pa * 2 * M_PI / (params.c / params.f)* std::sin(2*M_PI*xi) * std::cos(2*M_PI*tau);
+	*dpdt = params.Pa * params.omega * std::cos(2*M_PI*xi) * std::cos(2*M_PI*tau);
+	*dpdtdx = - params.Pa * params.omega * params.omega / params.c * std::sin(2*M_PI*xi) * std::cos(2*M_PI*tau);
+	*dpdy = 0.0;
 }

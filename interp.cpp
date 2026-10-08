@@ -69,7 +69,7 @@ void interp(float* pArr, const State& st, float tau,float* p,float* dpdx,float* 
 void interpSep(const State& st, double tau,double* p,double* dpdx,double* dpdy,double* dpdt,double* dpdtdx, SimParamStruct params){
 	double xi = st[1];
 	*p = params.Pa * std::cos(2*M_PI*xi) * std::sin(2*M_PI*tau);
-	*dpdx = - params.Pa * 2 * M_PI / (params.c / params.f)* std::sin(2*M_PI*xi) * std::cos(2*M_PI*tau);
+	*dpdx = - params.Pa * 2 * M_PI / (params.c / params.f)* std::sin(2*M_PI*xi) * std::sin(2*M_PI*tau);
 	*dpdt = params.Pa * params.omega * std::cos(2*M_PI*xi) * std::cos(2*M_PI*tau);
 	*dpdtdx = - params.Pa * params.omega * params.omega / params.c * std::sin(2*M_PI*xi) * std::cos(2*M_PI*tau);
 	*dpdy = 0.0;

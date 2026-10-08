@@ -10,7 +10,7 @@ def read_and_plot(filenameX, filenameY):
     print("----------->",t.size, y.size)
 
     plt.figure(figsize=(10, 5))
-    plt.plot(t[:], y, label="sol.y", color="b", linestyle="-", linewidth=1.5)
+    plt.plot(t[:], y, label="sol.y", color="r", linestyle="-", linewidth=1.5)
     plt.xlabel("Time (sol.t)")
     plt.ylabel("State (sol.y)")
     plt.title("Solution Plot")

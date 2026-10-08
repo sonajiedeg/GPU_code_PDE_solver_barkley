@@ -10,7 +10,9 @@ SimParamStruct paramSetup(float df = 200.0f){
 	params.lInWavelenght = 1.0/2.0;
 	params.res = 256;
 	params.f = 25e3;
-	params.c = 1482.0f;   // c ~= 1500 m/s, then take its square
+	// params.c = 1482.0f;   // c ~= 1500 m/s, then take its square
+	// pmod
+	params.c = 1500.0f;
 	float pi = 3.14159265359;
 
 	float lambda = params.c / params.f;
@@ -20,7 +22,6 @@ SimParamStruct paramSetup(float df = 200.0f){
 	params.PhaseOffsetAmplitude = 2.0f * pi * dAx / lambda;
 	params.PhaseOffsetAngularVelocity = 2.0f * pi * df;
 	params.df = df;
-	params.c = 1482.0f;   // c ~= 1500 m/s, then take its square
 	params.c2 = params.c * params.c; 
 	params.dx = params.c / params.f * params.lInWavelenght / (1.0f * params.res); //  m divide
 	// params.dx = 1e-3 / 256; // for the validation case
@@ -41,7 +42,9 @@ SimParamStruct paramSetup(float df = 200.0f){
 						  // and from the 9 point stencil of the Laplace operator
 	// params.bck = 1/2/params.K;					  //
 	params.bck = 1/2.0f/(params.dt*params.dt * params.c*params.c / params.dx / params.dx);
-	params.rho = 998.2;
+	// params.rho = 998.2;
+	// pmod
+	params.rho = 998.0f;
 	params.d = 1e-6;
 	params.omega = 2 * 3.14159265359 * params.f;
 	params.dx_rho_d_omega2 = params.dx * params.rho * params.d * params.omega * params.omega;
@@ -78,7 +81,7 @@ SimParamStruct paramSetup(float df = 200.0f){
 	 *		  = res / sig
 	*/
 	// float t = params.lInWavelenght / params.f * 12.0f*80.0f; // i want to set it so it just reaches the other wall
-	float t = 0.005;
+	float t = 0.04;
 	// t = 2.5e-6; // for the validation case
 	// params.ITERATIONS = round( t / params.dt );
     params.ITERATIONS = round( t / params.dt / 2.0f ) * 2.0f;
@@ -212,13 +215,17 @@ void paramSetupBubbleSolver(double* up, double* pp, double* sp, SimParamStruct p
 
 	double ST = 0.0725; // N/m
 	double R0 = 80e-6; // m
-	double P0 = 101325; // Pa
+	// double P0 = 101325; // Pa
+	// pmod
+	double P0 = 1.0e5; // Pa
 	double PV = 0.0;
 	double pi = 3.14159265359;
 	// double Rref = params.c / params.f;
 	double Rref = R0;
 	double omega = 2*pi*params.f; // Hz
-	double RHO = 998.2; // kg/m^3
+	// double RHO = 998.2; // kg/m^3
+	// pmod
+	double RHO = 998.0; // kg/m^3
 	double PE = 1.4; // <<<----------------------?????????????????????????
 	double CL = params.c; // m/s
 	double VIS = 0.001; // Pa s
@@ -240,7 +247,9 @@ void paramSetupBubbleSolver(double* up, double* pp, double* sp, SimParamStruct p
 	pp[4] = (std::pow(2.0 * pi / omega,2.0)) / CL / RHO / Rref;                    // C4
 	pp[5] = Rref * omega / (2 * pi) / CL;                                    // C5
 	// Translational Motion
-	pp[6] = 2.0 * pi / std::pow(Rref*Rref * omega,2.0) / RHO;                           // C6
+	// pp[6] = 2.0 * pi / std::pow(Rref*Rref * omega,2.0) / RHO;                           // C6
+	// mod 
+	pp[6] = 2.0 * pi / std::pow(Rref * omega,2.0) / Rref / (params.c / params.f) / RHO;                           // C6
 	pp[7] = 4.0 * pi / 3 * std::pow(Rref,3.0);                                          // C7
 	pp[8] = 12.0 * pi * VIS * Rref;                                          // C8
 	pp[9] = Rref * omega / (2.0 * pi);                                       // C9
@@ -252,44 +261,5 @@ void paramSetupBubbleSolver(double* up, double* pp, double* sp, SimParamStruct p
 	sp[0] = 3.0 * PE;
 	sp[1] = 1.0 / omega;
 	sp[2] = omega / CL;
+	sp[3] = CL;
 }
-/*
-def ode_fun(t, x, args):
-	up = args.up
-	pp = args.pp
-	sp = args.sp
-	# Radial Oscillation
-	R = x[0]        # Dimensionless Radius
-	U = x[2]        # Dimensionless Wall velocity
-	px =x[1]        # Dimensionless position
-	vx =x[3]        # Dimensionless translation velocity
-
-	
-	F = np.zeros_like(x)
-	inv_R = 1.0 / R
-	p = (up[2] * inv_R)**sp[0]
-
-	pa, pat, gradp = field(t, x)
-
-	# -- Radial Oscillation --
-	N = (up[0] + up[1]*U) * p \
-		- pp[0] * (1 + pp[5]*U) - pp[1] * inv_R - pp[2]*U*inv_R \
-		- 1.5 * (1.0 - pp[5]*U * (1.0/3.0))*U*U \
-		- (1 + pp[5]*U) * pp[3] * pa - pp[4] * pat * R \
-		+ 0.25 * vx * vx
-		
-
-	D = R - pp[5]*R*U + pp[2]*pp[5]
-	rD = 1.0 / D
-	# -- Translational motion --
-	Fb = -pp[7]*R*R*R * gradp            # Primary Bjerknes Force
-	Fd = -pp[8]*R * (vx * pp[9] - u)     # Drag Force
-	dv = 3*(Fb + Fd)*pp[6]*inv_R*inv_R*inv_R - 3.0*U*inv_R*vx
-
-	F[0] = U
-	F[1] = vx
-	F[2] = rD * N
-	F[3] = dv
-
-	return F
-	*/

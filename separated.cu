@@ -57,12 +57,13 @@ namespace cg = cooperative_groups;
 
 
 using State = std::vector<double>;
-using OdeFunc = std::function<State(const double, const State&, const double [3], const double [12], const double [3], const SimParamStruct)>;
+using OdeFunc = std::function<State(const double, const State&, const double [3], const double [12], const double [4], const SimParamStruct)>;
 
 struct Solution {
     std::vector<double> t;
     std::vector<State> y;
     std::vector<double> H;
+    std::vector<double> Fb;
     std::vector<double> error;
 	// Returns the time series for state component 'state_idx'
     std::vector<double> get_state_series(std::size_t state_idx) const {
@@ -117,11 +118,11 @@ int main()
 	w0 = 0.0;
 	double up[3] = {0.0};
 	double pp[12] = {0.0};
-	double sp[3] = {0.0};
+	double sp[4] = {0.0};
 	paramSetupBubbleSolver(up, pp, sp, params);
 
 	// -------------------------------------------------
-	OdeFunc dSdt = [](const double tau, const State& Y, const double up[3], const double pp[12], const double sp[3], const SimParamStruct params) -> State {
+	OdeFunc dSdt = [](const double tau, const State& Y, const double up[3], const double pp[12], const double sp[4], const SimParamStruct params) -> State {
 		// Radial Oscillation
 		double R = Y[0];        // Dimensionless Radius
 		double U = Y[3];        // Dimensionless Wall velocity
@@ -151,7 +152,7 @@ int main()
 		N-= pp[0] * (1 + pp[5]*U) + pp[1] * inv_R + pp[2]*U*inv_R;
 		N-= 1.5 * (1.0 - pp[5]*U * (1.0/3.0))*U*U;
 		N-= (1 + pp[5]*U) * pp[3] * pb + pp[4] * dpdt * R;
-		N+= 0.25 * vx * vx;
+		N+= 0.25 * vx * vx * params.c * params.c / params.f / params.f  / pp[11] / pp[11];
 		
 		double D = R - pp[5]*R*U + pp[2]*pp[5];
 		double rD = 1.0 / D;
@@ -163,7 +164,10 @@ int main()
 		// double Fb = -pp[7]*R*R*R * dpdx;
 		const double pi = 3.14159265359;
 		double u = -params.Pa / (params.rho * params.c) * std::sin(2.0 * pi * px) * std::cos(2.0 * pi * tau);
-		double Fd = -pp[8] * R * (vx * pp[9] - u);
+		// double Fd = -pp[8] * R * (vx / sp[1]/sp[2] - u);
+		double Fd = -pp[8] * R * (vx * sp[3] - u);
+		// mod speed of sound
+		// double Fd = -pp[8] * R * (vx * pp[9] - u);
 		// double u = - dpdtdx / params.rho / params.omega / params.omega;
 		// double Fd = -pp[8]*R * (vx * pp[9] - u);
 		// hereby, u(x,t) is the liquid velocity induced by the acousitc irradiaiton calculated at the center of the bubble [ref...]
@@ -175,8 +179,17 @@ int main()
 		F[3] = rD * N;
 		F[4] = dv;
 		F[5] = 0.0;
+		F[6] = 0.0;
+		// mod
+		/*
+		F[1] = vx;
+		double zeta = 2.05;
+		double omega_n = 0.0308;
+		dv = -2 * zeta * omega_n* vx - omega_n * omega_n * px;
+		F[4] = dv;
+		*/
 
-        return { F[0], F[1], F[2], F[3], F[4], F[5] };
+        return { F[0], F[1], F[2], F[3], F[4], F[5], F[6] };
     };
 
 	// -------------------------------------------------
@@ -216,12 +229,13 @@ int main()
 
 	double R0 = 80e-6;
 	// const State ic = { 1.0, x0/R0*1.25, y0/R0, 0, 0, 0 }; // R x y U vx vy
-	const State ic = { 1.0, 0.0009, y0/R0, 0.0, 0.0, 0.0 }; // R x y U vx vy
+	const State ic = { 1.0, 0.009, y0/R0, 0.0, 0.0, 0.0 }; // R x y U vx vy
     int num_eq = ic.size();
     
     Solution sol;
     sol.t.push_back(t_start);
     sol.y.push_back(ic);
+	sol.Fb.push_back(0.0);
 
     // Set parameters for error control
 	double h_init = 1e-6;
@@ -360,6 +374,7 @@ int main()
 				// Store accepted values
 				// if(y_next[1] != y_next[1]){ printf("yayay\n"); }
 				sol.y.push_back(y_next);
+				sol.Fb.push_back( -pp[7] * std::pow(sol.y.back()[0],3) * dpdx );
 				sol.error.push_back(max_err);
 				sol.H.push_back(current_accepted_h);
 				
@@ -376,8 +391,6 @@ int main()
 			// printf("size: %lu\n",sol.t.size());
 			
 		}
-
-	// Error:
 		
 		// delete[] uSnap;
 	} // end of segment iterations
@@ -393,6 +406,9 @@ int main()
 	snprintf(fname, sizeof(fname), "x_%.0f_df_%.0f.txt",params.f/1000.0, params.df);
 	solSave(fname, sol.get_state_series(1), params);
 
+	snprintf(fname, sizeof(fname), "vx_%.0f_df_%.0f.txt",params.f/1000.0, params.df);
+	solSave(fname, sol.get_state_series(4), params);
+
 	snprintf(fname, sizeof(fname), "y_%.0f_df_%.0f.txt",params.f/1000.0, params.df);
 	solSave(fname, sol.get_state_series(2), params);
 
@@ -404,6 +420,10 @@ int main()
 
 	snprintf(fname, sizeof(fname), "e_%.0f_df_%.0f.txt",params.f/1000.0, params.df);
 	solSave(fname, sol.error, params);
+
+	snprintf(fname, sizeof(fname), "Fb_%.0f_df_%.0f.txt",params.f/1000.0, params.df);
+	solSave(fname, sol.Fb, params);
+
 
 	PASS
 

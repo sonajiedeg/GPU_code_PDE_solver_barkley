@@ -6,7 +6,8 @@
 
 using State = std::vector<double>;
 
-void interp(float* pArr, const State& st, float tau,float* p,float* dpdx,float* dpdy,float* dpdt,float* dpdtdx, SimParamStruct params){
+// void interp(float* pArr, const State& st, float tau,float* p,float* dpdx,float* dpdy,float* dpdt,float* dpdtdx, SimParamStruct params){
+void interp(double* pArr, const State& st, double tau, double* p, double* dpdx, double* dpdy, double* dpdt, double* dpdtdx,SimParamStruct params){
 	float x = st[1] * (params.c/params.f);
 	float y = st[2] * (params.c/params.f);
 	float t = tau / params.f;

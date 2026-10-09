@@ -28,7 +28,8 @@ RUN_MODE = 'heatmap_anim'
 ani_name = 'hmap_name_tmp'
 
 # choose file to read
-fname = 'u_snap_f_44000.00_df_200.00_s_0.bin'
+fname = 'uf25000df200s3.bin'
+# fname = 'u_snap_f_44000.00_df_200.00_s_0.bin'
 # fname = 'u_snap_f_44000.00_df_200.00_s_8.bin'
 # fname = 'u_snap.bin'
 # fname = 'u_snap_gradx.bin'

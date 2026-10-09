@@ -39,6 +39,7 @@ cudaError_t err;																				\
 #undef __CUDACC__
 #endif // __INTELLISENSE__
 #include "solve2.cuh"
+#include "loadp.cpp"
 
 using namespace std;
 using namespace cooperative_groups;

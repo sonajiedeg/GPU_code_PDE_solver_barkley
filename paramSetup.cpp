@@ -81,7 +81,7 @@ SimParamStruct paramSetup(float df = 200.0f){
 	 *		  = res / sig
 	*/
 	// float t = params.lInWavelenght / params.f * 12.0f*80.0f; // i want to set it so it just reaches the other wall
-	float t = 0.04;
+	float t = 0.004;
 	// t = 2.5e-6; // for the validation case
 	// params.ITERATIONS = round( t / params.dt );
     params.ITERATIONS = round( t / params.dt / 2.0f ) * 2.0f;

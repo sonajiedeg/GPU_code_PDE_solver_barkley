@@ -18,8 +18,8 @@ p0 = 101325 # Pa
 
 PHASE_SNAP = True 
 # Choose your mode: 'heatmap_anim', 'line_anim', 'line_static', or 'point_static'
-RUN_MODE = 'heatmap_anim'
-# RUN_MODE = 'line_anim'
+# RUN_MODE = 'heatmap_anim'
+RUN_MODE = 'line_anim'
 # RUN_MODE = 'line_anim_phase_snap'
 # RUN_MODE = 'line_static'
 # RUN_MODE = 'point_static'
@@ -28,7 +28,7 @@ RUN_MODE = 'heatmap_anim'
 ani_name = 'hmap_name_tmp'
 
 # choose file to read
-fname = 'uf25000df200s3.bin'
+fname = 'uf25000df200s0.bin'
 # fname = 'u_snap_f_44000.00_df_200.00_s_0.bin'
 # fname = 'u_snap_f_44000.00_df_200.00_s_8.bin'
 # fname = 'u_snap.bin'
@@ -41,8 +41,8 @@ num_frames_ds_target = 100
 
 # Parameters for the 1D Spatial features (line modes)
 TARGET_AXIS = 'row'     # Choose 'row' or 'col'
-# TARGET_INDEX = 128      # Which specific row or column index to extract (0 to 255)
-TARGET_INDEX = 64 # Which specific row or column index to extract (0 to 255)
+TARGET_INDEX = 128      # Which specific row or column index to extract (0 to 255)
+# TARGET_INDEX = 64 # Which specific row or column index to extract (0 to 255)
 # FRAMES_TO_PLOT = [0, 50, 100, 150, 200] # Used only for 'line_static' mode
 FRAMES_TO_PLOT = [] # Used only for 'line_static' mode
 title_str = f""

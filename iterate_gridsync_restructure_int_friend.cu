@@ -70,17 +70,17 @@ static __device__ __forceinline__ void laplace_gi(float* r_un, int within_simspa
     {
         float r_L = 0;
 		// Patra-Karttunen (mabey try Oono-Puri)
-        r_L += -4 * lap_p[0];
+        r_L += -20 * lap_p[0];
 
-        r_L += 1 * lap_p[+1];
-        r_L += 1 * lap_p[-1];
-        r_L += 1 * lap_s[0];
-        r_L += 1 * lap_n[0];
+        r_L += 4 * lap_p[+1];
+        r_L += 4 * lap_p[-1];
+        r_L += 4 * lap_s[0];
+        r_L += 4 * lap_n[0];
 
-        // r_L += 1 * lap_s[+1];
-        // r_L += 1 * lap_s[-1];
-        // r_L += 1 * lap_n[+1];
-        // r_L += 1 * lap_n[-1];
+        r_L += 1 * lap_s[+1];
+        r_L += 1 * lap_s[-1];
+        r_L += 1 * lap_n[+1];
+        r_L += 1 * lap_n[-1];
 
         *r_un += params.K * r_L;
     }
@@ -631,7 +631,8 @@ static __device__ __forceinline__ void copy_r_to_g_and_no_flux_int_friend(float*
 			// else { phase_offset = params.C_amp*( 3.14159265359*0.5 - atanf( params.s * (k - 3.2 * params.C_off ) ) ); }
 			// if(j == 64 && k%10==0){printf("offset = %f\n",phase_offset);}
 			// float r_u_tmp = params.bcC1 * (*r_u1_bc) + params.bcC3 * r_u2 + params.bcC2 * __cosf( params.omega_dt * k + phase_offset + 3.14159265359*0.5);
-			float r_u_tmp = params.bcC1 * (*r_u1_bc) + params.bcC3 * r_u2 + params.bcC2 * __sinf( params.omega_dt * k + phase_offset );
+			// phase_offset = 0.0;
+			float r_u_tmp = params.bcC1 * (*r_u1_bc) + params.bcC3 * r_u2 - params.bcC2 * __sinf( params.omega_dt * k + phase_offset );
 			g_u2[threadoffset_p_one] = r_u_tmp;
 			(*r_u1_bc) = r_u_tmp;
 		}

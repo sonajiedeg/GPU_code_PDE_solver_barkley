@@ -32,7 +32,7 @@ void loadp(double* pArr, float* pSnap, const State& st, double tau0, SimParamStr
 	// printf("i0: %d\n",i0);
 	// printf("j0: %d\n",j0);
 	// printf("k0: %d\n",k0);
-	std::cout<< "pSnap idx0 " << (i0+0)+(j0+0)*params.res + (k0+0)*params.res*params.res << " i0 " << i0 << " k0 " << k0 << "\n";
+	// std::cout<< "pSnap idx0 " << (i0+0)+(j0+0)*params.res + (k0+0)*params.res*params.res << " i0 " << i0 << " k0 " << k0 << "\n";
 
 	for(int i=0;i<2;i++){
 		for(int j=0;j<2;j++){

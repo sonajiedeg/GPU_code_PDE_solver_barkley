@@ -2,12 +2,12 @@
 #include "param.h"
 #include <cstdio>
 
-SimParamStruct paramSetup(float df = 200.0f){
+SimParamStruct paramSetup(float df = 50.0f){
 	
 	// float res = 256;
 	// int res = 256;
 	SimParamStruct params;
-	params.lInWavelenght = 1.0/2.0;
+	params.lInWavelenght = 1.0f/1.0f;
 	params.res = 256;
 	params.f = 25e3;
 	// params.c = 1482.0f;   // c ~= 1500 m/s, then take its square
@@ -35,9 +35,10 @@ SimParamStruct paramSetup(float df = 200.0f){
 	params.dt = 1 / params.f / (1.0f * k);
 
 	// for 9 point stencil
-	params.K = ( params.dt * params.dt * params.c2 ) / ( 6 * params.dx * params.dx ); // ( dt * c^2 ) / ( 6 * dx^2 ) this comes from
+    params.K = ( params.dt * params.dt * params.c2 ) / ( 6 * params.dx * params.dx ); // ( dt * c^2 ) / ( 6 * dx^2 ) this comes from
 	// for 5 point stencil
 	// params.K = params.dt*params.dt * params.c*params.c / params.dx / params.dx; // ( dt * c^2 ) / ( 6 * dx^2 ) this comes from
+	// params.K = (params.dt * params.dt * params.c2) / (params.dx * params.dx);
 						  // the E.E. time discretization
 						  // and from the 9 point stencil of the Laplace operator
 	// params.bck = 1/2/params.K;					  //
@@ -59,6 +60,7 @@ SimParamStruct paramSetup(float df = 200.0f){
 	params.som2 = params.dt * params.c * params.Z / params.dx / ( 1.0f + params.dt * params.c * params.Z / params.dx );
 	
 	params.Pa = 75000.0f; // assigned the forced oscillation amplitide at the transducers
+	// params.Pa = 285250.0f; 
 	params.bcC1 = 1 / ( 1.0f + params.dt * params.c / params.dx );
 	params.bcC2 = params.Pa * params.dt * params.bcC1 * params.omega;
 	params.bcC3 = params.dt * params.c / params.dx * params.bcC1;
@@ -81,7 +83,8 @@ SimParamStruct paramSetup(float df = 200.0f){
 	 *		  = res / sig
 	*/
 	// float t = params.lInWavelenght / params.f * 12.0f*80.0f; // i want to set it so it just reaches the other wall
-	float t = 0.004;
+	// float t = 0.004;
+	float t = 0.04;
 	// t = 2.5e-6; // for the validation case
 	// params.ITERATIONS = round( t / params.dt );
     params.ITERATIONS = round( t / params.dt / 2.0f ) * 2.0f;
@@ -99,7 +102,7 @@ SimParamStruct paramSetup(float df = 200.0f){
 		params.SNAPSHOT = 1;
 		params.SNAP_MODULUS = 1;
 		params.tsc = params.ITERATIONS;
-		params.maxStepPerSegment = 4*1024;
+		params.maxStepPerSegment = 4*1024*2;
 		params.remainder = params.ITERATIONS % params.maxStepPerSegment;
 		params.segments = ( params.ITERATIONS - params.remainder ) / params.maxStepPerSegment + 1;
 		if (params.remainder == 0){ params.segments -= 1; params.remainder = params.maxStepPerSegment; }

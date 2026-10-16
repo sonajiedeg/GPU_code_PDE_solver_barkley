@@ -7,18 +7,18 @@
 using State = std::vector<double>;
 
 // void interp(float* pArr, const State& st, float tau,float* p,float* dpdx,float* dpdy,float* dpdt,float* dpdtdx, SimParamStruct params){
-void interp(double* pArr, const State& st, double tau, double* p, double* dpdx, double* dpdy, double* dpdt, double* dpdtdx,SimParamStruct params){
+void interp(double* pArr, const State& st, double tau, double* p, double* dpdx, double* dpdy, double* dpdt, double* dpdtdx,SimParamStruct params, int segment){
 	float x = st[1] * (params.c/params.f);
 	float y = st[2] * (params.c/params.f);
 	float t = tau / params.f;
 	int i0, j0, k0;
 	i0 = floor( x / (params.lInWavelenght * params.c / params.f) * params.res );
 	j0 = floor( y / (params.lInWavelenght * params.c / params.f) * params.res );
-	k0 = floor( t / params.dt - params.segments * params.maxStepPerSegment  );
+	k0 = floor( t / params.dt - segment * params.maxStepPerSegment + 2);
 	float x0,x1,y0,y1,t0,t1;
 	x0 = i0 * params.dx; x1 = (i0+1) * params.dx;
-	y0 = j0 * params.dx; y1 = (j0+1) * params.dx;
-	t0 = k0 * params.dt; t1 = (k0+1) * params.dt;
+	y0 = j0 * params.dx; y1 = (j0+1) * params.dx; t0 = (segment * params.maxStepPerSegment + k0 - 2) * params.dt;
+	t1 = (k0+1) * params.dt;
 	float xd,yd,td;
 	xd = ( x - x0 ) / ( x1 - x0 );
 	yd = ( y - y0 ) / ( y1 - y0 );

@@ -89,7 +89,10 @@ for k in range( 1, int(it), 2 ):
     # ub[0] = ua[0] + dt * c / dx * ( ua[1] - ua[0] ) # this works
     # ub[0] = 1 / ( 1 + dt*c/dx ) * ( ua[0] + dt*c/dx*ub[1] ) # this works, but NOT perfect
     # Impedance = absorbe some ( dp / dt + Z*c dp / dx = 0 )
-    ub[0] = ua[0] + Z * dt * c / dx * ( ua[1] - ua[0] ) 
+    # ub[0] = ua[0] + Z * dt * c / dx * ( ua[1] - ua[0] ) 
+    a_n_b = -d33 * V0 * omega**2 * np.sin(omega * dt * k)
+    ub[0] = ub[2] + 2 * dx * rho * a_n_b
+
     # ub[0] = 1 / ( 1/dt - c/dx ) * ( ua[0] / dt - c * ub[1] / dx )
 
     # save (k-2)th field variable, in gpu this only happend in the registers
@@ -120,7 +123,10 @@ for k in range( 1, int(it), 2 ):
     # ua[0] = ub[0] + dt * c / dx * ( ub[1] - ub[0] ) # this works
     # ua[0] = 1 / ( 1 + dt*c/dx ) * ( ub[0] + dt*c/dx*ua[1] ) # this works, but NOT perfect
     # Impedance = absorbe some ( dp / dt + Z*c dp / dx = 0 )
-    ua[0] = ub[0] + dt * Z * c / dx * ( ub[1] - ub[0] )
+    # ua[0] = ub[0] + dt * Z * c / dx * ( ub[1] - ub[0] )
+    a_n_a = -d33 * V0 * omega**2 * np.sin(omega * dt * (k+1))
+    ua[0] = ua[2] + 2 * dx * rho * a_n_a
+
     if snapshot and k % snap_mod == 0:
         results.append(ua.copy())
         line.set_ydata(ua)

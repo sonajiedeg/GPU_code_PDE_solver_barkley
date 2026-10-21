@@ -28,7 +28,7 @@ RUN_MODE = 'line_anim'
 ani_name = 'hmap_name_tmp'
 
 # choose file to read
-fname = 'uf25000df200s0.bin'
+fname = 'uf44000df50s2.bin'
 # fname = 'u_snap_f_44000.00_df_200.00_s_0.bin'
 # fname = 'u_snap_f_44000.00_df_200.00_s_8.bin'
 # fname = 'u_snap.bin'
@@ -75,8 +75,9 @@ if PHASE_SNAP:
     # dt = 3.55113627e-08
     # dt = 3.55113627e-08
     dt = 7.10227255e-08
+    dt = 1.42938816e-07
     freq = 44000
-    Tper = 1 / freq / 8
+    Tper = 1 / freq / 2
     PhaseSnapOffsetDt = ( np.pi * 0/3 ) / 2 / np.pi / freq
     file_size = os.path.getsize(fname)
     frame_bytes = res * res * 4

@@ -30,3 +30,7 @@ plt.plot(x,y)
 plt.show()
 print(ddata[:][0])
 print(ddata[1][0])
+
+
+x = [xi[0] for xi in ddata]
+print("Frequencies:", x)

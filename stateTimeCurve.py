@@ -20,34 +20,8 @@ def read_and_plot(filenameX, filenameY, qty):
 
 
 # read_and_plot("t_44000.00_df_200.00_s_0.txt", "x_44000.00_df_200.00_s_0.txt")
-read_and_plot("t_25_df_50.txt", "x_25_df_50.txt", "x")
-read_and_plot("t_25_df_50.txt", "R_25_df_50.txt", "R")
+read_and_plot("t_44_df_50_Pa_76_R0_52sol.txt", "x_44_df_50_Pa_76_R0_52sol.txt", "x")
+read_and_plot("t_44_df_50_Pa_76_R0_52sol.txt", "R_44_df_50_Pa_76_R0_52sol.txt", "R")
 plt.show()
 
 
-'''
-import numpy as np
-import matplotlib.pyplot as plt
-
-def read_and_plot(filenameX,filenameY):
-    with open(filenameX, "r") as f:
-        size = np.fromfile(f, dtype=np.uint64, count=1)[0]
-        t = np.fromfile(f, dtype=np.float32, count=size)
-    with open(filenameY, "r") as f:
-        size = np.fromfile(f, dtype=np.uint64, count=1)[0]
-        y = np.fromfile(f, dtype=np.float32, count=size)
-
-    # 3. Plot the results
-    plt.figure(figsize=(10, 5))
-    plt.plot(t, y, label="sol.y", color="b", linewidth=1.5)
-    plt.xlabel("Time (sol.t)")
-    plt.ylabel("State (sol.y)")
-    plt.title("Solution Plot")
-    plt.grid(True)
-    plt.legend()
-    plt.tight_layout()
-    plt.show()
-
-# Run post-processing
-read_and_plot("t_44000.00_df_200.00_s_0.txt","x_44000.00_df_200.00_s_0.txt")
-'''

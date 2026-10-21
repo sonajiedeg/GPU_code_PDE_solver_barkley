@@ -2,14 +2,14 @@
 #include "param.h"
 #include <cstdio>
 
-SimParamStruct paramSetup(float df = 50.0f){
+SimParamStruct paramSetup(float df = 50.0f, float Pa = 75000.0f, int SegmentSize = 8192){
 	
 	// float res = 256;
 	// int res = 256;
 	SimParamStruct params;
 	params.lInWavelenght = 1.0f/1.0f;
 	params.res = 256;
-	params.f = 25e3;
+	params.f = 44e3;
 	// params.c = 1482.0f;   // c ~= 1500 m/s, then take its square
 	// pmod
 	params.c = 1500.0f;
@@ -59,7 +59,7 @@ SimParamStruct paramSetup(float df = 50.0f){
 	params.som1 = 1.0f / ( 1.0f + params.dt * params.c * params.Z / params.dx );
 	params.som2 = params.dt * params.c * params.Z / params.dx / ( 1.0f + params.dt * params.c * params.Z / params.dx );
 	
-	params.Pa = 75000.0f; // assigned the forced oscillation amplitide at the transducers
+	params.Pa = Pa; // assigned the forced oscillation amplitide at the transducers
 	// params.Pa = 285250.0f; 
 	params.bcC1 = 1 / ( 1.0f + params.dt * params.c / params.dx );
 	params.bcC2 = params.Pa * params.dt * params.bcC1 * params.omega;
@@ -84,7 +84,7 @@ SimParamStruct paramSetup(float df = 50.0f){
 	*/
 	// float t = params.lInWavelenght / params.f * 12.0f*80.0f; // i want to set it so it just reaches the other wall
 	// float t = 0.004;
-	float t = 0.04;
+	float t = 2/df / 1;
 	// t = 2.5e-6; // for the validation case
 	// params.ITERATIONS = round( t / params.dt );
     params.ITERATIONS = round( t / params.dt / 2.0f ) * 2.0f;
@@ -102,7 +102,7 @@ SimParamStruct paramSetup(float df = 50.0f){
 		params.SNAPSHOT = 1;
 		params.SNAP_MODULUS = 1;
 		params.tsc = params.ITERATIONS;
-		params.maxStepPerSegment = 4*1024*2;
+		params.maxStepPerSegment = SegmentSize;
 		params.remainder = params.ITERATIONS % params.maxStepPerSegment;
 		params.segments = ( params.ITERATIONS - params.remainder ) / params.maxStepPerSegment + 1;
 		if (params.remainder == 0){ params.segments -= 1; params.remainder = params.maxStepPerSegment; }
@@ -214,10 +214,11 @@ SimParamStruct paramSetup(float df = 50.0f){
 	return params;
 }
 
-void paramSetupBubbleSolver(double* up, double* pp, double* sp, SimParamStruct params){
+void paramSetupBubbleSolver(double* up, double* pp, double* sp, SimParamStruct params, double R0=80.0e-6){
 
 	double ST = 0.0725; // N/m
-	double R0 = 80e-6; // m
+	// double R0 = 80e-6; // m
+	// double R0 = ; // m
 	// double P0 = 101325; // Pa
 	// pmod
 	double P0 = 1.0e5; // Pa

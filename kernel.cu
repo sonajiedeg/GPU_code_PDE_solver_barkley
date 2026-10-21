@@ -51,8 +51,13 @@ cudaError_t iterate_prep(float* u, float* v, float* u_sol, unsigned int size, in
 cudaError_t iterate_prep_segment(float* u, float* v, float* u_sol, unsigned int size, int res, SimParamStruct params);
 void print_runtimes(std::chrono::steady_clock::time_point begin, std::chrono::steady_clock::time_point end, SimParamStruct params);
 
-int main()
+int main(int argc, char* argv[])
 {
+	float df = stof(argv[1]);
+	float Pa = stof(argv[2]);
+	double R0 = stod(argv[3]);
+	int SegmentSize = stod(argv[4]);
+	printf("-------------->%f\t,%f\t,%lf\n",df,Pa,R0);
     const unsigned int res = 256; // swich
     const unsigned int size = res * res;
     float* u = new float[size];
@@ -63,8 +68,8 @@ int main()
 
     // Add vectors in parallel.
 	cudaError_t cudaStatus;
-	SimParamStruct params = paramSetup();
-	if(params.segment){ cudaStatus = solve2(u, v, u_sol, size, res, params); CUERR; }
+	SimParamStruct params = paramSetup(df,Pa,SegmentSize);
+	if(params.segment){ cudaStatus = solve2(u, v, u_sol, size, res, params, R0); CUERR; }
     // if(params.segment){ cudaStatus = iterate_prep_segment(u, v, u_sol, size, res, params); CUERR; }
 	else{ cudaStatus = iterate_prep(u, v, u_sol, size, res, params); CUERR; }
     // array_to_text(u, res);

@@ -41,7 +41,7 @@ void interp(double* pArr, const State& st, double t, double* p, double* dpdx, do
 void solSave(char* fname, std::vector<double> sol, SimParamStruct params);
 
 // Helper function for using CUDA to add vectors in parallel.
-cudaError_t solve2(float* u, float* v, float* u_sol, unsigned int size, int res, SimParamStruct params)
+cudaError_t solve2(float* u, float* v, float* u_sol, unsigned int size, int res, SimParamStruct params, double R0)
 {
 	//--------------------------------------------------------------------------------
 	//-------- INITIALIZE ------------------------------------------------------------
@@ -90,7 +90,7 @@ cudaError_t solve2(float* u, float* v, float* u_sol, unsigned int size, int res,
 	double up[3] = {0.0};
 	double pp[12] = {0.0};
 	double sp[4] = {0.0};
-	paramSetupBubbleSolver(up, pp, sp, params);
+	paramSetupBubbleSolver(up, pp, sp, params, R0);
 
 	double t_start = 0.0;
 
@@ -125,7 +125,7 @@ cudaError_t solve2(float* u, float* v, float* u_sol, unsigned int size, int res,
     a[5][0] = -8.0 / 27.0;      a[5][1] = 2.0;               a[5][2] = -3544.0 / 2565.0;  a[5][3] = 1859.0 / 4104.0;  a[5][4] = -11.0 / 40.0;
 	*/
 
-	double R0 = 80e-6;
+	// double R0 = 80e-6;
 	const State ic = { 1.0, x0/(params.c/params.f), y0/(params.c/params.f), 0, 0, 0 }; // R x y U vx vy
 	// const State ic = { 1.0, 0.009, y0/(params.c/params.f), 0, 0, 0 }; // R x y U vx vy
     int num_eq = ic.size();
@@ -217,7 +217,6 @@ cudaError_t solve2(float* u, float* v, float* u_sol, unsigned int size, int res,
 			snprintf(fname, sizeof(fname), "uf%.0fdf%.0fs%d.bin",params.f, params.df,segment);
 			snap_to_text(uSnap, params, fname, activeSteps);
 			*/
-			
 		}
 
 
@@ -364,23 +363,26 @@ cudaError_t solve2(float* u, float* v, float* u_sol, unsigned int size, int res,
 	print_runtimes(beginTot, endTot, params);
 	
 	char fname[100];
-	snprintf(fname, sizeof(fname), "R_%.0f_df_%.0f.txt",params.f/1000.0, params.df);
+	snprintf(fname, sizeof(fname), "R_%.0f_df_%.0f_Pa_%.0f_R0_%.0lfsol.txt",params.f/1000.0, params.df, params.Pa/1000, R0*1e6);
 	solSave(fname, sol.get_state_series(0), params);
 
-	snprintf(fname, sizeof(fname), "x_%.0f_df_%.0f.txt",params.f/1000.0, params.df);
+	snprintf(fname, sizeof(fname), "x_%.0f_df_%.0f_Pa_%.0f_R0_%.0lfsol.txt",params.f/1000.0, params.df, params.Pa/1000, R0*1e6);
 	solSave(fname, sol.get_state_series(1), params);
 
-	snprintf(fname, sizeof(fname), "y_%.0f_df_%.0f.txt",params.f/1000.0, params.df);
-	solSave(fname, sol.get_state_series(2), params);
-
-	snprintf(fname, sizeof(fname), "t_%.0f_df_%.0f.txt",params.f/1000.0, params.df);
+	
+	snprintf(fname, sizeof(fname), "t_%.0f_df_%.0f_Pa_%.0f_R0_%.0lfsol.txt",params.f/1000.0, params.df, params.Pa/1000, R0*1e6);
 	solSave(fname, sol.t, params);
 
-	snprintf(fname, sizeof(fname), "H_%.0f_df_%.0f.txt",params.f/1000.0, params.df);
+	/*
+	snprintf(fname, sizeof(fname), "y_%.0f_df_%.0f_Pa_%.0f_R0_%.0lfsol.txt",params.f/1000.0, params.df, params.Pa/1000, R0*1e6);
+	solSave(fname, sol.get_state_series(2), params);
+
+	snprintf(fname, sizeof(fname), "H_%.0f_df_%.0f_Pa_%.0f_R0_%.0lfsol.txt",params.f/1000.0, params.df, params.Pa/1000, R0*1e6);
 	solSave(fname, sol.H, params);
 
-	snprintf(fname, sizeof(fname), "e_%.0f_df_%.0f.txt",params.f/1000.0, params.df);
+	snprintf(fname, sizeof(fname), "e_%.0f_df_%.0f_Pa_%.0f_R0_%.0lfsol.txt",params.f/1000.0, params.df, params.Pa/1000, R0*1e6);
 	solSave(fname, sol.error, params);
+	*/
 	   
 	delete[] u1;
 	delete[] u2;

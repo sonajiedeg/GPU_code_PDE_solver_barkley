@@ -14,8 +14,8 @@ omega = 2 * 3.14159265359 * f
 it = 50000 # iteration step number
 res = 256 # number of pixels
 size = res**2
-dx = (c/f) * 3 / 256 # spatial discretization length
-sigma = .9 # Courant number
+dx = (c/f) * 1 / 256 # spatial discretization length
+sigma = .5 # Courant number
 dt = sigma * dx / c # time discretization, with CFL criterion
 Z = 1 # impedance BC parameter
 '''
@@ -45,7 +45,7 @@ line, = ax.plot(x, ua)
 
 ax.set_xlabel("x")
 ax.set_ylabel("u")
-ax.set_ylim(-1e4, 1e4)   # adjust if needed
+ax.set_ylim(-80e3, 80e3)   # adjust if needed
 
 # one step with first order approx
 k = 0
@@ -60,6 +60,11 @@ ua[res+1] = ua[res] + dx * rho * d * omega * omega * np.sin( omega * dt * (2 * k
 ua[0] = 0
 # haha, all is still 0 after the first step :)
 
+Pa = 75000
+bcC1 = 1 / ( 1.0 + dt * c / dx );
+bcC2 = Pa * dt * bcC1 * omega;
+bcC3 = dt * c / dx * bcC1;
+
 
 results = []
 
@@ -72,14 +77,15 @@ for k in range( 1, int(it), 2 ):
     # bc 
     # transducer
     # ub[res+1] = ub[res] + dx * rho * d * omega**2 * np.sin( omega * dt * ( k ) ) - dx**2 / 2 / c**2 / dt**2 * ( ub[res] - 2 * ua[res] + uc[res] )
-    d33 = 289e-12
-    V0 = 100
-    lp = 0.005
+    # d33 = 289e-12
+    # V0 = 100
+    # lp = 0.005
     # ub[res+1] = ub[res] + dx * rho * d33 * V0 / lp * omega**2 * np.sin( omega * dt * ( k ) ) - dx**2 / 2 / c**2 / dt**2 * ( ub[res] - 2 * ua[res] + uc[res] )
     # Calculate physical acceleration of the piezo face
-    a_n_b = -d33 * V0 * omega**2 * np.sin(omega * dt * k)
+    # a_n_b = -d33 * V0 * omega**2 * np.sin(omega * dt * k)
     # Central difference ghost node update
-    ub[res+1] = ub[res-1] - 2 * dx * rho * a_n_b
+    # ub[res+1] = ub[res-1] - 2 * dx * rho * a_n_b
+    ub[res+1] = bcC1 * ua[res+1] + bcC3 * ub[res] - bcC2 * np.cos( omega * dt * (k) ); # east
     # other end: wall or symmetry or VOID
     # Dirichlet = reflect with inverse phase
     # ub[0] = 0
@@ -90,8 +96,12 @@ for k in range( 1, int(it), 2 ):
     # ub[0] = 1 / ( 1 + dt*c/dx ) * ( ua[0] + dt*c/dx*ub[1] ) # this works, but NOT perfect
     # Impedance = absorbe some ( dp / dt + Z*c dp / dx = 0 )
     # ub[0] = ua[0] + Z * dt * c / dx * ( ua[1] - ua[0] ) 
-    a_n_b = -d33 * V0 * omega**2 * np.sin(omega * dt * k)
-    ub[0] = ub[2] + 2 * dx * rho * a_n_b
+    # a_n_b = -d33 * V0 * omega**2 * np.sin(omega * dt * k)
+    # ub[0] = ub[2] + 2 * dx * rho * a_n_b
+    # ub[0] = 0
+
+    # ub[0] = bcC1 * ua[0] + bcC3 * ub[0] - bcC2 * np.sin( omega * dt * k );
+    ub[0] = bcC1 * ua[0] + bcC3 * ub[1] + bcC2 * np.cos( omega * dt * (k) ); # east
 
     # ub[0] = 1 / ( 1/dt - c/dx ) * ( ua[0] / dt - c * ub[1] / dx )
 
@@ -103,15 +113,16 @@ for k in range( 1, int(it), 2 ):
     # bc 
     # transducer
     # ua[res+1] = ua[res] + dx * rho * d * omega**2 * np.sin( omega * dt * ( k + 1 ) ) - dx**2 / 2 / c**2 / dt**2 * ( ua[res] - 2 * ub[res] + uc[res] )
-    d33 = 289e-12
-    V0 = 100
-    lp = 0.005
+    # d33 = 289e-12
+    # V0 = 100
+    # lp = 0.005
     # ua[res+1] = ua[res] + dx * rho * d33 * V0 / lp * omega**2 * np.sin( omega * dt * ( k + 1 ) ) - dx**2 / 2 / c**2 / dt**2 * ( ua[res] - 2 * ub[res] + uc[res] )
     # Calculate physical acceleration of the piezo face
-    a_n_a = -d33 * V0 * omega**2 * np.sin(omega * dt * (k + 1))
+    # a_n_a = -d33 * V0 * omega**2 * np.sin(omega * dt * (k + 1))
     
     # Central difference ghost node update
-    ua[res+1] = ua[res-1] - 2 * dx * rho * a_n_a
+    # ua[res+1] = ua[res-1] - 2 * dx * rho * a_n_a
+    ua[res+1] = bcC1 * ub[res+1] + bcC3 * ua[res] - bcC2 * np.cos( omega * dt * (k+1) ); # east
     # ua[res+1] = ua[res] + dx * rho * d * omega**2 * np.sin( omega * dt * ( k + 1 ) ) - dx**2 / 2 / c**2 / dt**2 * ( ua[res] - 2 * ub[res] + uc[res] )
     # other end: wall or symmetry or VOID
     # Dirichlet = reflect with inverse phase
@@ -124,15 +135,20 @@ for k in range( 1, int(it), 2 ):
     # ua[0] = 1 / ( 1 + dt*c/dx ) * ( ub[0] + dt*c/dx*ua[1] ) # this works, but NOT perfect
     # Impedance = absorbe some ( dp / dt + Z*c dp / dx = 0 )
     # ua[0] = ub[0] + dt * Z * c / dx * ( ub[1] - ub[0] )
-    a_n_a = -d33 * V0 * omega**2 * np.sin(omega * dt * (k+1))
-    ua[0] = ua[2] + 2 * dx * rho * a_n_a
+    # a_n_a = -d33 * V0 * omega**2 * np.sin(omega * dt * (k+1))
+    # ua[0] = ua[2] + 2 * dx * rho * a_n_a
+    # ua[0] = 0
+
+    ua[0] = bcC1 * ub[0] + bcC3 * ua[1] + bcC2 * np.sin( omega * dt * (k+1) ); # east
+
+
 
     if snapshot and k % snap_mod == 0:
         results.append(ua.copy())
         line.set_ydata(ua)
         ax.set_title(f"k = {k}, max = {np.max(ua)}")
         plt.draw()
-        plt.pause(0.01)          # redraw
+        plt.pause(0.03)          # redraw
  
  
 

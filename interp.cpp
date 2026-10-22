@@ -7,18 +7,31 @@
 using State = std::vector<double>;
 
 // void interp(float* pArr, const State& st, float tau,float* p,float* dpdx,float* dpdy,float* dpdt,float* dpdtdx, SimParamStruct params){
-void interp(double* pArr, const State& st, double tau, double* p, double* dpdx, double* dpdy, double* dpdt, double* dpdtdx,SimParamStruct params, int segment){
+void interp(double* pArr, const State& st, double tau, double* p, double* dpdx, double* dpdy, double* dpdt, double* dpdtdx,SimParamStruct params, int segment, int activeSteps){
 	float x = st[1] * (params.c/params.f);
 	float y = st[2] * (params.c/params.f);
 	float t = tau / params.f;
+	// Cast everything explicitly to double to maintain full precision
+	// double current_t = tau / (double)params.f;
+	// double segment_offset_t = (double)segment * (double)params.maxStepPerSegment * (double)params.dt;
+	// Use a small epsilon to guard against floating-point jitter before floor()
+	// double normalized_t = (current_t - segment_offset_t) / (double)params.dt + 3.0 + 1e-7;
+
 	int i0, j0, k0;
 	i0 = floor( x / (params.lInWavelenght * params.c / params.f) * params.res );
 	j0 = floor( y / (params.lInWavelenght * params.c / params.f) * params.res );
-	k0 = floor( t / params.dt - segment * params.maxStepPerSegment + 2);
+	k0 = floor( t / params.dt - segment * params.maxStepPerSegment + 3);
+
+	if (i0 < 0) i0 = 0; if (i0 > params.res - 2) i0 = params.res - 2;
+    if (j0 < 0) j0 = 0; if (j0 > params.res - 2) j0 = params.res - 2;
+    if (k0 < 0) k0 = 0; if (k0 > activeSteps + 1 ) k0 = activeSteps + 1;
+
 	float x0,x1,y0,y1,t0,t1;
 	x0 = i0 * params.dx; x1 = (i0+1) * params.dx;
-	y0 = j0 * params.dx; y1 = (j0+1) * params.dx; t0 = (segment * params.maxStepPerSegment + k0 - 2) * params.dt;
-	t1 = (k0+1) * params.dt;
+	y0 = j0 * params.dx; y1 = (j0+1) * params.dx;
+	t0 = (segment * params.maxStepPerSegment + k0 - 3) * params.dt;
+	t1 = t0 + params.dt;
+	// t1 = (k0+1) * params.dt;
 	float xd,yd,td;
 	xd = ( x - x0 ) / ( x1 - x0 );
 	yd = ( y - y0 ) / ( y1 - y0 );
@@ -50,7 +63,7 @@ void interp(double* pArr, const State& st, double tau, double* p, double* dpdx, 
 	float dpdt00,dpdt01,dpdt10,dpdt11,dpdt0,dpdt1;
 	dpdt00 = ( pArr[0+2*0+4*1] - pArr[0+2*0+4*0] ) / params.dt;
 	dpdt01 = ( pArr[0+2*1+4*1] - pArr[0+2*1+4*0] ) / params.dt;
-	dpdt10 = ( pArr[1+2*0+4*0] - pArr[1+2*0+4*0] ) / params.dt;
+	dpdt10 = ( pArr[1+2*0+4*1] - pArr[1+2*0+4*0] ) / params.dt;
 	dpdt11 = ( pArr[1+2*1+4*1] - pArr[1+2*1+4*0] ) / params.dt;
 	dpdt0 = dpdt00 * (1 - xd) + dpdt10 * xd;
 	dpdt1 = dpdt01 * (1 - xd) + dpdt11 * xd;
@@ -58,7 +71,7 @@ void interp(double* pArr, const State& st, double tau, double* p, double* dpdx, 
 	float dpdtdx00,dpdtdx01,dpdtdx10,dpdtdx11,dpdtdx0,dpdtdx1;
 	dpdtdx00 = ( pArr[0+2*0+4*1] - pArr[0+2*0+4*0] ) / params.dt;
 	dpdtdx01 = ( pArr[0+2*1+4*1] - pArr[0+2*1+4*0] ) / params.dt;
-	dpdtdx10 = ( pArr[1+2*0+4*0] - pArr[1+2*0+4*0] ) / params.dt;
+	dpdtdx10 = ( pArr[1+2*0+4*1] - pArr[1+2*0+4*0] ) / params.dt;
 	dpdtdx11 = ( pArr[1+2*1+4*1] - pArr[1+2*1+4*0] ) / params.dt;
 	dpdtdx0 =  ( dpdtdx10 - dpdtdx00 ) / params.dx;
 	dpdtdx1 =  ( dpdtdx11 - dpdtdx01 ) / params.dx;

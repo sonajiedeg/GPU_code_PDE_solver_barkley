@@ -9,10 +9,10 @@ using State = std::vector<double>;
 #include <cmath>
 
 // Forward declarations for helper functions used inside dSdt
-void loadp(double* pArr, float* pSnap, const State& st, double tau0, SimParamStruct params, int segment);
-void interp(double* pArr, const State& st, double t, double* p, double* dpdx, double* dpdy, double* dpdt, double* dpdtdx, SimParamStruct params, int segment);
+void loadp(double* pArr, float* pSnap, const State& st, double tau0, SimParamStruct params, int segment, int activeSteps);
+void interp(double* pArr, const State& st, double t, double* p, double* dpdx, double* dpdy, double* dpdt, double* dpdtdx, SimParamStruct params, int segment, int activeSteps);
 
-State dSdt(const double tau, const State& Y, const double up[3], const double pp[12], const double sp[4], const SimParamStruct params, float* pSnap, int segment) {
+State dSdt(const double tau, const State& Y, const double up[3], const double pp[12], const double sp[4], const SimParamStruct params, float* pSnap, int segment, int activeSteps) {
     // Radial Oscillation
     double R = Y[0];        // Dimensionless Radius
     double U = Y[3];        // Dimensionless Wall velocity
@@ -22,14 +22,14 @@ State dSdt(const double tau, const State& Y, const double up[3], const double pp
     State F(Y.size(), 0.0);
 
     if (R <= 1e-9) {
-        return { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 }; 
+        return { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 }; 
     }
 
     double pb, dpdx, dpdy, dpdt, dpdtdx;
     double pArr[8];
 
-    loadp(pArr, pSnap, Y, tau, params, segment);
-    interp(pArr, Y, tau, &pb, &dpdx, &dpdy, &dpdt, &dpdtdx, params, segment);
+    loadp(pArr, pSnap, Y, tau, params, segment, activeSteps);
+    interp(pArr, Y, tau, &pb, &dpdx, &dpdy, &dpdt, &dpdtdx, params, segment, activeSteps);
 
     double inv_R = 1.0 / R;
     double base = up[2] * inv_R;

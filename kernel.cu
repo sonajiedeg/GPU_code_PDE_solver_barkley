@@ -111,7 +111,7 @@ cudaError_t iterate_prep_segment(float* u, float* v, float* u_sol, unsigned int 
 	kernelArgs[5] = (void*)&kStepStart;
 
 	dim3 dimBlock(32, 32, 1);
-	dim3 dimGrid(4, 4, 1); // swich
+	dim3 dimGrid(8, 8, 1); // swich
 
 	//measure elapsed time
 	std::chrono::steady_clock::time_point beginTot;
@@ -255,7 +255,7 @@ cudaError_t iterate_prep(float* u, float* v, float* u_sol, unsigned int size, in
 	}
 
     dim3 dimBlock(32, 32, 1);
-    dim3 dimGrid(4, 4, 1);
+    dim3 dimGrid(8, 8, 1);
 
     //measure elapsed time
     std::chrono::steady_clock::time_point begin;

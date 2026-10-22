@@ -145,13 +145,14 @@ cudaError_t solve2(float* u, float* v, float* u_sol, unsigned int size, int res,
     double abstolmax = abstol * 10.0;
     double frac = 0.9;
     double p = 4.0;
+	int SegmentOverlap = 3;
 
 	//measure elapsed time
 	std::chrono::steady_clock::time_point beginTot;
 	std::chrono::steady_clock::time_point endTot;
 	beginTot = std::chrono::steady_clock::now();
 
-	float* uSegmentEnd = new float[size*2]{};
+	float* uSegmentEnd = new float[size*SegmentOverlap]{};
 
 	//--------------------------------------------------------------------------------
 	//-------- START OF THE SEGMENT ITERATION ----------------------------------------
@@ -166,7 +167,7 @@ cudaError_t solve2(float* u, float* v, float* u_sol, unsigned int size, int res,
 		//--------------------------------------------------------------------------------
 		printf("segment / segments: %d / %d\n",segment,params.segments);
 		activeSteps = ( segment < params.segments-1 ) ? params.maxStepPerSegment : params.remainder;
-		size_t snapSize = (size_t)size * (size_t)(activeSteps+2) ;
+		size_t snapSize = (size_t)size * (size_t)(activeSteps+SegmentOverlap) ;
 		float* uSnap = new float[snapSize]{};
 
 
@@ -205,9 +206,9 @@ cudaError_t solve2(float* u, float* v, float* u_sol, unsigned int size, int res,
 			cudaMemcpy(u2, dev_ua, (size_t)size * (size_t)sizeof(float), cudaMemcpyDeviceToHost); CUERR;
 			cudaMemcpy(u1, dev_ub, (size_t)size * (size_t)sizeof(float), cudaMemcpyDeviceToHost); CUERR;
 
-			if ( params.SNAPSHOT ) { cudaMemcpy(&(uSnap[2*size]), dev_snap, (size_t)size * (size_t)sizeof(float) * (size_t)activeSteps, cudaMemcpyDeviceToHost); CUERR; }
+			if ( params.SNAPSHOT ) { cudaMemcpy(&(uSnap[SegmentOverlap*size]), dev_snap, (size_t)size * (size_t)sizeof(float) * (size_t)activeSteps, cudaMemcpyDeviceToHost); CUERR; }
 			// append previous segment end 2 timesteps
-			for(int i = 0; i<2*size; i++){ uSnap[i] = uSegmentEnd[i]; }
+			for(int i = 0; i<SegmentOverlap*size; i++){ uSnap[i] = uSegmentEnd[i]; }
 
 			cudaDeviceSynchronize(); CUERR;
 			
@@ -233,7 +234,7 @@ cudaError_t solve2(float* u, float* v, float* u_sol, unsigned int size, int res,
 			State yh(num_eq, 0.0);
 			std::vector<State> k(6, State(num_eq, 0.0));
 
-			while(sol.t.back() + 1*h < tSegmentEnd*params.f && it < itLim)
+			while(sol.t.back() + 1*h + params.dt * params.f < tSegmentEnd*params.f && it < itLim)
 			{
 					
 				bool error_not_in_range = true;
@@ -260,7 +261,7 @@ cudaError_t solve2(float* u, float* v, float* u_sol, unsigned int size, int res,
 						else if (Y[2] > params.lInWavelenght) Y[2] = params.lInWavelenght * 0.99999999999;
 
 						double tj = sol.t.back() + c[j] * h;
-						k[j] = dSdt(tj,Y,up,pp,sp,params,uSnap,segment);
+						k[j] = dSdt(tj,Y,up,pp,sp,params,uSnap,segment,activeSteps);
 					}
 					// Calculate 4th order estimate (y_next)
 					y_next = sol.y.back();
@@ -345,7 +346,7 @@ cudaError_t solve2(float* u, float* v, float* u_sol, unsigned int size, int res,
 			} // end of RK45 timesteps
 
 			size_t offset = (activeSteps)*size; 	
-			for(int i=0; i<2*size; i++){uSegmentEnd[i] = uSnap[offset + i];}
+			for(int i=0; i<SegmentOverlap*size; i++){uSegmentEnd[i] = uSnap[offset + i];}
 		} // end of RK45 solver
 
 	// Error:
@@ -386,6 +387,7 @@ cudaError_t solve2(float* u, float* v, float* u_sol, unsigned int size, int res,
 	   
 	delete[] u1;
 	delete[] u2;
+	delete[] uSegmentEnd;
 
     return cudaStatus;
 }

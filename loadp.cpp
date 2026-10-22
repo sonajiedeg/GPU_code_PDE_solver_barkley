@@ -10,8 +10,14 @@ struct PositionReset {
 };
 
 
-void loadp(double* pArr, float* pSnap, const State& st, double tau0, SimParamStruct params, int segment){
+void loadp(double* pArr, float* pSnap, const State& stIn, double tau0, SimParamStruct params, int segment, int activeSteps){
 	// limiting the position within the simulaion domain
+	State st = stIn;
+	if(st[1]<0.0){st[1]=0.0;}
+	else if(st[1]>params.lInWavelenght){st[1]=params.lInWavelenght;}
+	if(st[2]<0.0){st[2]=0.0;}
+	else if(st[2]>params.lInWavelenght){st[2]=params.lInWavelenght;}
+
 	/*
 	if(st[1]<0.0){st[1]=0.0;pr.xLow=1;};
 	else if(st[1]>params.lInWavelenght){st[1]=params.lInWavelenght;pr.xHigh=1;};
@@ -25,7 +31,11 @@ void loadp(double* pArr, float* pSnap, const State& st, double tau0, SimParamStr
 	int i0, j0, k0;
 	i0 = floor( st[1] / params.lInWavelenght * params.res );
 	j0 = floor( st[2] / params.lInWavelenght * params.res );
-	k0 = floor( t0 / params.dt - segment * params.maxStepPerSegment + 2 );
+	k0 = floor( t0 / params.dt - segment * params.maxStepPerSegment + 3 );
+
+    if (k0 < 0){k0 = 0;}
+    // Assuming maxStepPerSegment defines the maximum valid steps in pSnap buffer
+    if (k0 > activeSteps + 1){k0 = activeSteps + 1;}
 	
 	// printf("t0: %f\n",t0);
 	// printf("t0 / dt: %f\n",t0 / params.dt);
@@ -43,7 +53,7 @@ void loadp(double* pArr, float* pSnap, const State& st, double tau0, SimParamStr
 				// printf("%d\t%d\t%d\t\n",i0,j0,k0);
 				// printf("pArr %d\n",i+2*j+4*k);
 				// unsigned long long int idx = (i0+i)+(j0+j)*params.res + (k0+k)*params.res*params.res;
-				std::size_t idx = (i0+i)+(j0+j)*params.res + (k0+k)*params.res*params.res;
+				std::size_t idx = (std::size_t)(i0+i)+(std::size_t)(j0+j)*(std::size_t)params.res + (std::size_t)(k0+k)*(std::size_t)params.res*(std::size_t)params.res;
 				// printf("pSnap %d\n",(i0+i)+(j0+j)*params.res + (k0+k)*params.res*params.res);
 				// printf("pSnap %llu\n",(i0+i)+(j0+j)*params.res + (k0+k)*params.res*params.res);
 				// std::cout<< "pSnap idx" << idx << "\n";

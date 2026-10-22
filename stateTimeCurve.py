@@ -20,8 +20,8 @@ def read_and_plot(filenameX, filenameY, qty):
 
 
 # read_and_plot("t_44000.00_df_200.00_s_0.txt", "x_44000.00_df_200.00_s_0.txt")
-read_and_plot("t_44_df_50_Pa_76_R0_52sol.txt", "x_44_df_50_Pa_76_R0_52sol.txt", "x")
-read_and_plot("t_44_df_50_Pa_76_R0_52sol.txt", "R_44_df_50_Pa_76_R0_52sol.txt", "R")
+read_and_plot("t_25_df_50_Pa_75_R0_80sol.txt", "x_25_df_50_Pa_75_R0_80sol.txt", "x")
+read_and_plot("t_25_df_50_Pa_75_R0_80sol.txt", "R_25_df_50_Pa_75_R0_80sol.txt", "R")
 plt.show()
 
 

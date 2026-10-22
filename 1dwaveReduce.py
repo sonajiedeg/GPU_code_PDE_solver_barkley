@@ -76,7 +76,7 @@ for k in range( 1, int(it), 2 ):
         ub[i+1] = 2 * ua[i+1] - uc[i+1] + dt**2 * c**2 / dx**2 * ( ua[i+2] - 2 * ua[i+1] + ua[i] )
     # bc 
     # transducer
-    ub[res+1] = bcC1 * ua[res+1] + bcC3 * ub[res] + bcC2 * np.cos( omega * dt * (k) ); # east
+    ub[res+1] = bcC1 * ua[res+1] + bcC3 * ub[res] + bcC2 * np.cos( (omega+2*np.pi*200) * dt * (k) ); # east
     ub[0] = bcC1 * ua[0] + bcC3 * ub[1] + bcC2 * np.cos( omega * dt * (k) ); # east
     # ub[0] = 1/(1+c*dt/dx)* ( ua[0] + omega*Pa*dt*np.cos(omega*dt*k) + c*dt/dx*ub[1])
     # ub[res+1] = 1/(1+c*dt/dx)* ( ua[res+1] + omega*Pa*dt*np.cos(omega*dt*k) + c*dt/dx*ub[res])
@@ -88,7 +88,7 @@ for k in range( 1, int(it), 2 ):
         ua[i+1] = 2 * ub[i+1] - uc[i+1] + dt**2 * c**2 / dx**2 * ( ub[i+2] - 2 * ub[i+1] + ub[i] )
     # bc 
     # transducer
-    ua[res+1] = bcC1 * ub[res+1] + bcC3 * ua[res] + bcC2 * np.cos( omega * dt * (k+1) ); # east
+    ua[res+1] = bcC1 * ub[res+1] + bcC3 * ua[res] + bcC2 * np.cos( (omega+2*np.pi*200)* dt * (k+1) ); # east
     ua[0] = bcC1 * ub[0] + bcC3 * ua[1] + bcC2 * np.cos( omega * dt * (k+1) ); # east
     # ua[0] = 1/(1+c*dt/dx)* ( ub[0] + omega*Pa*dt*np.cos(omega*dt*(k+1)) + c*dt/dx*ua[1])
     # ua[res+1] = 1/(1+c*dt/dx)* ( ub[res+1] + omega*Pa*dt*np.cos(omega*dt*(k+1)) + c*dt/dx*ua[res])
@@ -99,4 +99,4 @@ for k in range( 1, int(it), 2 ):
         line.set_ydata(ua)
         ax.set_title(f"k = {k}, max = {np.max(ua)}")
         plt.draw()
-        plt.pause(0.03)          # redraw
+        plt.pause(0.01)          # redraw

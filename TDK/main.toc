@@ -1,0 +1,10 @@
+\contentsline {section}{\numberline {1}Bevezetés}{3}{}%
+\contentsline {subsection}{\numberline {1.1}Szonokémia}{3}{}%
+\contentsline {subsection}{\numberline {1.2}Miért kellett ezt a dolgozatot megirni}{3}{}%
+\contentsline {section}{\numberline {2}Modell}{3}{}%
+\contentsline {subsection}{\numberline {2.1}Fizikai modell => Matematikai modell}{3}{}%
+\contentsline {subsection}{\numberline {2.2}Numerikus módszerek}{3}{}%
+\contentsline {section}{\numberline {3}Akusztikus mez\H {o}}{3}{}%
+\contentsline {section}{\numberline {4}Eredmények}{3}{}%
+\contentsline {section}{\numberline {5}compare to J's measurements?}{4}{}%
+\contentsline {section}{\numberline {6}Összefoglaló}{4}{}%

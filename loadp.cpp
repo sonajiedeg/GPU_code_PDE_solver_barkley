@@ -27,11 +27,11 @@ void loadp(double* pArr, float* pSnap, const State& stIn, double tau0, SimParamS
 
 	// float x0 = st[1] * (params.c/params.f);
 	// float y0 = st[2] * (params.c/params.f);
-	float t0 = tau0 / params.f;
+	double t0 = tau0 / (double)params.f;
 	int i0, j0, k0;
-	i0 = floor( st[1] / params.lInWavelenght * params.res );
-	j0 = floor( st[2] / params.lInWavelenght * params.res );
-	k0 = floor( t0 / params.dt - segment * params.maxStepPerSegment + 3 );
+	i0 = floor( st[1] / (double)params.lInWavelenght * (double)params.res );
+	j0 = floor( st[2] / (double)params.lInWavelenght * (double)params.res );
+	k0 = floor( t0 / (double)params.dt - (double)segment * (double)params.maxStepPerSegment + 3.0 );
 
     if (k0 < 0){k0 = 0;}
     // Assuming maxStepPerSegment defines the maximum valid steps in pSnap buffer
@@ -61,7 +61,7 @@ void loadp(double* pArr, float* pSnap, const State& stIn, double tau0, SimParamS
 				// pArr[i+2*j+4*k] = pSnap[(i0+i)+(j0+j)*params.res + (k0+k)*params.res*params.res];
 				// while(1){ printf("%d\t%f\n",idx,pSnap[idx]); idx++; }
 				// PASS
-				pArr[i+2*j+4*k] = pSnap[idx];
+				pArr[i+2*j+4*k] = (double)pSnap[idx];
 			}
 		}
 	}

@@ -27,3 +27,8 @@ sep:
 	nvcc -o	separated.exe separated.cu $(CMPL_OPT)
 	./separated.exe
 
+floatT:
+	rm -f floatT.exe
+	nvcc -o	floatT.exe floatT.cu $(CMPL_OPT)
+	./floatT.exe
+

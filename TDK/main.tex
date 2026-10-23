@@ -1,0 +1,187 @@
+% \documentclass[twocolumn]{article}
+\documentclass{article}
+\usepackage{graphicx,amsmath,fancyhdr,fancyvrb,bm}
+\usepackage[upint]{stix}
+\title{Introduction to Quantum Information Theory Notes ($2^{nd}$ Semester)}
+\author{Prof./Lect.: Dr. Mihály Weiner \\ Me: G.J.J.}
+\date{2025/2026/1}
+\pagenumbering{arabic}     % Use Arabic numerals (1, 2, 3, ...)
+\setcounter{page}{0}       % Start from page number 0
+\thispagestyle{empty}      % Removes number on the current page (the first one)
+\usepackage[a4paper,
+            bindingoffset=0in,
+            left=1.5cm,
+            right=1.5cm,
+            top=2cm,
+            bottom=1.5cm,
+            footskip=.25in]{geometry}
+\pagestyle{fancy}
+\fancyhf{} % clear all header and footer fields
+% Put section title on the top (left or right depending on odd/even pages)
+\fancyhead[L]{\nouppercase{\leftmark}}
+% Page number at the bottom center
+\fancyfoot[C]{\thepage}
+% invert colors comment untill star to get a printable version
+\usepackage{xcolor}
+\definecolor{mybg}{RGB}{30,30,30}
+\usepackage{background}
+\backgroundsetup{
+  scale=1,
+  % color=black,
+  % color=darkgray,
+  % color=mybg,
+  color=white,
+  opacity=1,
+  angle=0,
+  position=current page.center, % center aligns full-page rectangle
+  contents={\rule{\paperwidth}{\paperheight}}
+}
+% \color{white}
+% star
+
+% ----------------------------
+% ---------- MACROS ----------
+% ----------------------------
+% numberless section title + add this to the header
+\newcommand{\ms}[1]{%
+  \newpage%
+  \section*{Week #1, Lecture #1}%
+  \markboth{Week #1, Lecture #1}{}%
+  \setcounter{equation}{0}
+  \setcounter{section}{#1}
+  \setcounter{tocdepth}{1}
+  \addcontentsline{toc}{section}{Week #1, Lecture #1}
+}
+% partial derivative, fraction
+\newcommand{\pd}[2]{\frac{\partial #1}{\partial #2}}
+% upper dagger
+\newcommand{\adj}[0]{^\dag}
+% braket, bra, ket notations
+\newcommand{\braket}[2]{\left\langle #1 \middle| #2 \right\rangle}
+\newcommand{\ketbra}[2]{\left| #1 \middle\rangle \middle\langle #2 \right|}
+\newcommand{\bra}[1]{\left\langle #1 \right\vert}
+\newcommand{\ket}[1]{\left\vert #1 \right\rangle}
+% scalar product
+\newcommand{\scp}[2]{\left\langle #1 , #2 \right\rangle}
+% better sum
+\newcommand{\summ}[2]{\sum_{#1}^{#2}}
+% evaluated at
+\newcommand{\at}[2]{\left. #1 \right\rvert_{#2}}
+% array vertical column form stack exchange
+\makeatletter
+\renewcommand*\env@matrix[1][*\c@MaxMatrixCols c]{%
+  \hskip -\arraycolsep
+  \let\@ifnextchar\new@ifnextchar
+  \array{#1}}
+\makeatother
+% set,where { #1 | #2 }
+\newcommand{\setwhere}[2]{\begin{Bmatrix}[c|c] #1 & #2 \end{Bmatrix}}
+% norm
+\newcommand{\norm}[1]{\left\vert \left\vert #1 \right\vert \right\vert}
+% reference equation
+\newcommand{\refeq}[1]{equation (\ref{ #1 })}
+% Hilbert-Schmidt scalar product
+\newcommand{\scphs}[2]{\scp{#1}{#2}_{H-Sch}}
+% quantum system state space (S^+_1(\mathcal{H}))
+\newcommand{\qss}[0]{S^+_1(\mathcal{H})}
+\newcommand{\qssi}[0]{S^+_1(\mathcal{H}_I)}
+\newcommand{\qssii}[0]{S^+_1(\mathcal{H}_{II})}
+\newcommand{\qssprod}[0]{S^+_1(\mathcal{H}_I\otimes\mathcal{H}_{II})}
+\newcommand{\qssv}[0]{S(\mathcal{H})}
+\newcommand{\qssiv}[0]{S(\mathcal{H}_I)}
+\newcommand{\qssiiv}[0]{S(\mathcal{H}_{II})}
+\newcommand{\qssprodv}[0]{S(\mathcal{H}_I\otimes\mathcal{H}_{II})}
+% quantum system state space (S^+_1(  ))
+\newcommand{\qssf}[1]{S^+_1(#1)}
+% align* equation numbering
+\newcommand{\nt}{\stepcounter{equation}\tag{\theequation}}
+% in equation, often used words
+\newcommand{\und}[0]{\text{ and }}
+\newcommand{\oder}[0]{\text{ or }}
+\newcommand{\tr}[1]{\text{ Tr}\left( #1 \right)}
+\newcommand{\Span}[1]{\text{ Span}\left\{ #1 \right\}}
+% \newcommand{\span}[1]{\text{ Span }\left( #1 \right) }
+\newcommand{\carray}[1]{\begin{pmatrix} #1 \end{pmatrix}}
+\newcommand{\lin}[1]{\text{Lin}\left( #1 \right)}
+\newcommand{\subsectiontoc}[1]{%
+  \subsection*{#1}%
+  \addcontentsline{toc}{subsection}{#1}%
+}
+\newcommand{\subsubsectiontoc}[1]{%
+  \subsubsection*{#1}%
+  \addcontentsline{toc}{subsubsection}{#1}%
+}
+\newcommand{\paragraphtoc}[1]{%
+  \paragraph{#1}%
+  \addcontentsline{toc}{paragraph}{#1}%
+}
+
+\setlength{\parindent}{0pt} % removes paragraph indentation
+
+\renewcommand{\contentsname}{Tartalom jegyzék}
+
+% equation numbering as <#section.x>
+\numberwithin{equation}{section}
+% ------------------------------
+% ---------- DOCUMENT ----------
+% ------------------------------
+\begin{document}
+
+\maketitle
+\thispagestyle{empty}
+\newpage
+
+\section*{Absztrakt}
+Ez a dolgozat  az akusztikus tér mozgó csomópontjainak hatását vizsgálja buborékok sugár és pozíció dinamikájára, numerikus módszerekkel.
+Ezek az állapotváltozók jelentős szerepet játtszanak a szonokémiai reaktorokban.
+Korábbi munkánkat folytatva, két dimenziós szimulációt fejlesztettünk, amely az akusztikus hullámegyenletet oldja meg, GPU architektúrára illesztve, véges differenci módszerrel.
+A szimulációkat először állóhullámok, majd a gerjesztés időfüggő fáziseltolásával a nyomástér csomópont pozícióinak a mozgását reprodukáltuk.
+Ezzel párhuzamosan a rendszer CPU-ján irányú csatolással a Keller-Miksis és az impulzus egyenlet a buborék sugár és pozíció dinamikájának a modellezésének céljából.
+Végül pedig egyéb kutatások mérési eredményeivel összehasonlítottuk a szimulációk megoldásait.
+\newpage          
+
+\setcounter{tocdepth}{4}
+\tableofcontents
+\newpage          
+
+\section{Bevezetés}
+\subsection{Szonokémia}
+\subsection{Miért kellett ezt a dolgozatot megirni}
+\section{Modell}
+\subsection{Fizikai modell => Matematikai modell}
+Mi az a reaktor
+
+Fizikai modell
+
+\subsection{Numerikus módszerek}
+fdm+rk45
+haradware aware diszkretizáció
+\section{Akusztikus mez\H{o}}
+\section{Eredmények}
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.5\linewidth]{placeholder.jpg}
+    \caption{Oszilláció amplitudó, $|A_x|(\Delta f)$}
+    \label{fig:1}
+\end{figure}
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.5\linewidth]{placeholder.jpg}
+	\caption{TF heatmap gain, $\at{G_x}{\Delta f}(R_0,P_a)$}
+    \label{fig:1}
+\end{figure}
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.5\linewidth]{placeholder.jpg}
+	\caption{TF heatmap phase offset, $\at{\varphi_x}{\Delta f}(R_0,P_a)$}
+    \label{fig:1}
+\end{figure}
+
+
+\section{compare to J's measurements?}
+\section{Összefoglaló}
+
+\end{document}

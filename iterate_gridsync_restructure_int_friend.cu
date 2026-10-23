@@ -561,7 +561,7 @@ static __device__ __forceinline__ void copy_r_to_g_and_no_flux_int_friend(float*
 		if ( 64 <= j && j <= 191 ) {
 			// float phase_offset = 3.14159265359 * 1 * (k / 10236.0 );
 			float phase_offset = 0.0;
-			float r_u_tmp = params.bcC1 * (*r_u1_bc) + params.bcC3 * r_u2 + params.bcC2 * __cosf( params.omega_dt * k - phase_offset );
+			float r_u_tmp = params.bcC1 * (*r_u1_bc) + params.bcC3 * r_u2 + params.bcC2 * __cosf( params.omega_dt * k );
 			g_u2[threadoffset_m_one] = r_u_tmp;
 			(*r_u1_bc) = r_u_tmp;
 		}

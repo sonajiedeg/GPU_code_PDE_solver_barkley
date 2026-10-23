@@ -8,43 +8,44 @@ using State = std::vector<double>;
 
 // void interp(float* pArr, const State& st, float tau,float* p,float* dpdx,float* dpdy,float* dpdt,float* dpdtdx, SimParamStruct params){
 void interp(double* pArr, const State& st, double tau, double* p, double* dpdx, double* dpdy, double* dpdt, double* dpdtdx,SimParamStruct params, int segment, int activeSteps){
-	float x = st[1] * (params.c/params.f);
-	float y = st[2] * (params.c/params.f);
-	float t = tau / params.f;
+	double x = st[1] * ((double)params.c/(double)params.f);
+	double y = st[2] * ((double)params.c/(double)params.f);
+	// float t = tau / params.f;
 	// Cast everything explicitly to double to maintain full precision
-	// double current_t = tau / (double)params.f;
-	// double segment_offset_t = (double)segment * (double)params.maxStepPerSegment * (double)params.dt;
+	double current_t = tau / (double)params.f;
+	double segment_offset_t = (double)segment * (double)params.maxStepPerSegment * (double)params.dt;
 	// Use a small epsilon to guard against floating-point jitter before floor()
-	// double normalized_t = (current_t - segment_offset_t) / (double)params.dt + 3.0 + 1e-7;
+	double normalized_t = (current_t - segment_offset_t) / (double)params.dt + 3.0 + 1e-7;
 
 	int i0, j0, k0;
-	i0 = floor( x / (params.lInWavelenght * params.c / params.f) * params.res );
-	j0 = floor( y / (params.lInWavelenght * params.c / params.f) * params.res );
-	k0 = floor( t / params.dt - segment * params.maxStepPerSegment + 3);
+	i0 = (int)floor( x / ((double)params.lInWavelenght * (double)params.c / (double)params.f) * (double)params.res );
+	j0 = (int)floor( y / ((double)params.lInWavelenght * (double)params.c / (double)params.f) * (double)params.res );
+	// k0 = (int)floor( t / params.dt - segment * params.maxStepPerSegment + 3);
+	k0 = (int)floor( normalized_t );
 
 	if (i0 < 0) i0 = 0; if (i0 > params.res - 2) i0 = params.res - 2;
     if (j0 < 0) j0 = 0; if (j0 > params.res - 2) j0 = params.res - 2;
     if (k0 < 0) k0 = 0; if (k0 > activeSteps + 1 ) k0 = activeSteps + 1;
 
-	float x0,x1,y0,y1,t0,t1;
-	x0 = i0 * params.dx; x1 = (i0+1) * params.dx;
-	y0 = j0 * params.dx; y1 = (j0+1) * params.dx;
-	t0 = (segment * params.maxStepPerSegment + k0 - 3) * params.dt;
-	t1 = t0 + params.dt;
+	double x0,x1,y0,y1,t0,t1;
+	x0 = (double)i0 * (double)params.dx; x1 = (double)(i0+1) * (double)params.dx;
+	y0 = (double)j0 * (double)params.dx; y1 = (double)(j0+1) * (double)params.dx;
+	t0 = ((double)segment * (double)params.maxStepPerSegment + (double)k0 - 3.0) * (double)params.dt;
+	t1 = t0 + (double)params.dt;
 	// t1 = (k0+1) * params.dt;
-	float xd,yd,td;
+	double xd,yd,td;
 	xd = ( x - x0 ) / ( x1 - x0 );
 	yd = ( y - y0 ) / ( y1 - y0 );
-	td = ( t - t0 ) / ( t1 - t0 );
-	float p00,p01,p10,p11,p0,p1;
+	td = ( current_t - t0 ) / ( t1 - t0 );
+	double p00,p01,p10,p11,p0,p1;
 	p00 = pArr[0+2*0+4*0] * (1 - xd) + pArr[1+2*0+4*0] * xd;
 	p01 = pArr[0+2*0+4*1] * (1 - xd) + pArr[1+2*0+4*1] * xd;
 	p10 = pArr[0+2*1+4*0] * (1 - xd) + pArr[1+2*1+4*0] * xd;
 	p11 = pArr[0+2*1+4*1] * (1 - xd) + pArr[1+2*1+4*1] * xd;
-	p0 = p00 * (1 - yd) + p10 * yd;
-	p1 = p01 * (1 - yd) + p11 * yd;
-	*p = p0 * (1 - td) + p1 * td;
-	float dpdx00,dpdx01,dpdx10,dpdx11,dpdx0,dpdx1;
+	p0 = p00 * (1.0 - yd) + p10 * yd;
+	p1 = p01 * (1.0 - yd) + p11 * yd;
+	*p = p0 * (1.0 - td) + p1 * td;
+	double dpdx00,dpdx01,dpdx10,dpdx11,dpdx0,dpdx1;
 	dpdx00 = ( pArr[1+2*0+4*0] - pArr[0+2*0+4*0] ) / params.dx;
 	dpdx01 = ( pArr[1+2*0+4*1] - pArr[0+2*0+4*1] ) / params.dx;
 	dpdx10 = ( pArr[1+2*1+4*0] - pArr[0+2*1+4*0] ) / params.dx;
@@ -52,7 +53,7 @@ void interp(double* pArr, const State& st, double tau, double* p, double* dpdx, 
 	dpdx0 = dpdx00 * (1 - yd) + dpdx10 * yd;
 	dpdx1 = dpdx01 * (1 - yd) + dpdx11 * yd;
 	*dpdx = dpdx0 * (1 - td) + dpdx1 * td;
-	float dpdy00,dpdy01,dpdy10,dpdy11,dpdy0,dpdy1;
+	double dpdy00,dpdy01,dpdy10,dpdy11,dpdy0,dpdy1;
 	dpdy00 = ( pArr[0+2*1+4*0] - pArr[0+2*0+4*0] ) / params.dx;
 	dpdy01 = ( pArr[0+2*1+4*1] - pArr[0+2*0+4*1] ) / params.dx;
 	dpdy10 = ( pArr[1+2*1+4*0] - pArr[1+2*0+4*0] ) / params.dx;
@@ -68,7 +69,7 @@ void interp(double* pArr, const State& st, double tau, double* p, double* dpdx, 
 	dpdt0 = dpdt00 * (1 - xd) + dpdt10 * xd;
 	dpdt1 = dpdt01 * (1 - xd) + dpdt11 * xd;
 	*dpdt = dpdt0 * (1 - yd) + dpdt1 * yd;
-	float dpdtdx00,dpdtdx01,dpdtdx10,dpdtdx11,dpdtdx0,dpdtdx1;
+	double dpdtdx00,dpdtdx01,dpdtdx10,dpdtdx11,dpdtdx0,dpdtdx1;
 	dpdtdx00 = ( pArr[0+2*0+4*1] - pArr[0+2*0+4*0] ) / params.dt;
 	dpdtdx01 = ( pArr[0+2*1+4*1] - pArr[0+2*1+4*0] ) / params.dt;
 	dpdtdx10 = ( pArr[1+2*0+4*1] - pArr[1+2*0+4*0] ) / params.dt;

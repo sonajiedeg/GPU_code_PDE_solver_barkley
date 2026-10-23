@@ -1,6 +1,7 @@
 #include "loadp.cpp"
 #include "interp.cpp"
 #include "solSave.cpp"
+#include "solSaveBin.cpp"
 #include "OdeFunc.cpp"
 
 #include <iostream>
@@ -41,7 +42,7 @@ void interp(double* pArr, const State& st, double t, double* p, double* dpdx, do
 void solSave(char* fname, std::vector<double> sol, SimParamStruct params);
 
 // Helper function for using CUDA to add vectors in parallel.
-cudaError_t solve2(float* u, float* v, float* u_sol, unsigned int size, int res, SimParamStruct params, double R0)
+cudaError_t solve2(float* u, float* v, float* u_sol, unsigned int size, int res, SimParamStruct params, double R0, int DID)
 {
 	//--------------------------------------------------------------------------------
 	//-------- INITIALIZE ------------------------------------------------------------
@@ -181,7 +182,7 @@ cudaError_t solve2(float* u, float* v, float* u_sol, unsigned int size, int res,
 
 		// cooperative kernel launch parameters
 		// Choose which GPU to run on, change this on a multi-GPU system.
-		cudaStatus = cudaSetDevice(DEVICE_ID); CUERR;
+		cudaStatus = cudaSetDevice(DID); CUERR;
 
 		if (run_gsync_restruct_int_friend)
 		{
@@ -364,15 +365,18 @@ cudaError_t solve2(float* u, float* v, float* u_sol, unsigned int size, int res,
 	print_runtimes(beginTot, endTot, params);
 	
 	char fname[100];
-	snprintf(fname, sizeof(fname), "R_%.0f_df_%.0f_Pa_%.0f_R0_%.0lfsol.txt",params.f/1000.0, params.df, params.Pa/1000, R0*1e6);
-	solSave(fname, sol.get_state_series(0), params);
+	snprintf(fname, sizeof(fname), "R_%.0f_df_%.0f_Pa_%.0f_R0_%.0lfsol.bin",params.f/1000.0, params.df, params.Pa/1000, R0*1e6);
+    solSaveBin(fname, sol.get_state_series(0), params);
+    // solSave(fname, sol.get_state_series(0), params);
 
-	snprintf(fname, sizeof(fname), "x_%.0f_df_%.0f_Pa_%.0f_R0_%.0lfsol.txt",params.f/1000.0, params.df, params.Pa/1000, R0*1e6);
-	solSave(fname, sol.get_state_series(1), params);
+	snprintf(fname, sizeof(fname), "x_%.0f_df_%.0f_Pa_%.0f_R0_%.0lfsol.bin",params.f/1000.0, params.df, params.Pa/1000, R0*1e6);
+	solSaveBin(fname, sol.get_state_series(1), params);
+	// solSave(fname, sol.get_state_series(1), params);
 
 	
-	snprintf(fname, sizeof(fname), "t_%.0f_df_%.0f_Pa_%.0f_R0_%.0lfsol.txt",params.f/1000.0, params.df, params.Pa/1000, R0*1e6);
-	solSave(fname, sol.t, params);
+	snprintf(fname, sizeof(fname), "t_%.0f_df_%.0f_Pa_%.0f_R0_%.0lfsol.bin",params.f/1000.0, params.df, params.Pa/1000, R0*1e6);
+	solSaveBin(fname, sol.t, params);
+	// solSave(fname, sol.t, params);
 
 	/*
 	snprintf(fname, sizeof(fname), "y_%.0f_df_%.0f_Pa_%.0f_R0_%.0lfsol.txt",params.f/1000.0, params.df, params.Pa/1000, R0*1e6);

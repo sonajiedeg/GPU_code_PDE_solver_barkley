@@ -1,4 +1,4 @@
-This is LuaHBTeX, Version 1.17.0 (TeX Live 2023/Debian)  (format=lualatex 2026.4.13)  23 OCT 2026 01:39
+This is LuaHBTeX, Version 1.17.0 (TeX Live 2023/Debian)  (format=lualatex 2026.4.13)  30 OCT 2026 01:36
  restricted system commands enabled.
  file:line:error style messages enabled.
 **main.tex
@@ -37,8 +37,8 @@ Inserting `luaotfload.aux.set_xheight' in `luaotfload.patch_font'.
 Inserting `luaotfload.rewrite_fontname' in `luaotfload.patch_font'.
 Inserting `tracingstacklevels' in `input_level_string'. (/usr/share/texlive/texmf-dist/tex/latex/base/article.cls
 Document Class: article 2023/05/17 v1.4n Standard LaTeX document class
-(/usr/share/texlive/texmf-dist/tex/latex/base/size10.clo
-File: size10.clo 2023/05/17 v1.4n Standard LaTeX file (size option)
+(/usr/share/texlive/texmf-dist/tex/latex/base/size12.clo
+File: size12.clo 2023/05/17 v1.4n Standard LaTeX file (size option)
 luaotfload | db : Font names database loaded from /home/usr1/.texlive2023/texmf-var/luatex-cache/generic/names/luaotfload-names.luc.gz)
 \c@part=\count185
 \c@section=\count186
@@ -581,23 +581,23 @@ LaTeX Info: Command `\ddddot' is already robust on input line 128.
 * layout: <same size as paper>
 * layoutoffset:(h,v)=(0.0pt,0.0pt)
 * modes: 
-* h-part:(L,W,R)=(42.67912pt, 512.14963pt, 42.67912pt)
-* v-part:(T,H,B)=(56.9055pt, 745.46222pt, 42.67912pt)
+* h-part:(L,W,R)=(71.13188pt, 455.24411pt, 71.13188pt)
+* v-part:(T,H,B)=(71.13188pt, 702.78308pt, 71.13188pt)
 * \paperwidth=597.50787pt
 * \paperheight=845.04684pt
-* \textwidth=512.14963pt
-* \textheight=745.46222pt
-* \oddsidemargin=-29.59087pt
-* \evensidemargin=-29.59087pt
-* \topmargin=-52.36449pt
+* \textwidth=455.24411pt
+* \textheight=702.78308pt
+* \oddsidemargin=-1.1381pt
+* \evensidemargin=-1.1381pt
+* \topmargin=-38.1381pt
 * \headheight=12.0pt
 * \headsep=25.0pt
-* \topskip=10.0pt
+* \topskip=12.0pt
 * \footskip=18.06749pt
-* \marginparwidth=65.0pt
-* \marginparsep=11.0pt
+* \marginparwidth=44.0pt
+* \marginparsep=10.0pt
 * \columnsep=10.0pt
-* \skip\footins=9.0pt plus 4.0pt minus 2.0pt
+* \skip\footins=10.8pt plus 4.0pt minus 2.0pt
 * \hoffset=0.0pt
 * \voffset=0.0pt
 * \mag=1000
@@ -634,65 +634,82 @@ File: ls1stixsf.fd 2015/04/17 v1.1.2-latex STIX sans-serif LS1 font definitions
 LaTeX Font Info:    Trying to load font information for LS2+stixtt on input line 130.
  (/usr/share/texlive/texmf-dist/tex/latex/stix/ls2stixtt.fd
 File: ls2stixtt.fd 2015/04/17 v1.1.2-latex STIX typewriter LS2 font definitions
-) [0
-
-{/var/lib/texmf/fonts/map/pdftex/updmap/pdftex.map}] [1
-Missing character: There is no ő (U+0151) in font t1-stixgeneral!
-Missing character: There is no ő (U+0151) in font t1-stixgeneral!
-Missing character: There is no ő (U+0151) in font t1-stixgeneral!
-Missing character: There is no ő (U+0151) in font t1-stixgeneral!
-] (./main.toc
-
-LaTeX Font Warning: Font shape `OT1/cmr/bx/n' in size <7.5> not available
-(Font)              size <7> substituted on input line 2.
-
-
-LaTeX Font Warning: Font shape `OML/cmm/b/it' in size <7.5> not available
-(Font)              size <7> substituted on input line 2.
-
-
-LaTeX Font Warning: Font shape `OMS/cmsy/b/n' in size <7.5> not available
-(Font)              size <7> substituted on input line 2.
-
 )
+<bme_logo.png, id=4, 1204.5pt x 401.5pt>
+File: bme_logo.png Graphic file (type png)
+<use bme_logo.png>
+Package luatex.def Info: bme_logo.png  used on input line 133.
+(luatex.def)             Requested size: 273.14923pt x 91.05038pt.
+<HDSlogo_szoveg.png, id=5, 2007.5pt x 611.28375pt>
+File: HDSlogo_szoveg.png Graphic file (type png)
+<use HDSlogo_szoveg.png>
+Package luatex.def Info: HDSlogo_szoveg.png  used on input line 137.
+(luatex.def)             Requested size: 182.09486pt x 55.44221pt.
+ [0
+
+{/var/lib/texmf/fonts/map/pdftex/updmap/pdftex.map}<./bme_logo.png><./HDSlogo_szoveg.png>] [1
+
+]
+
+Package fancyhdr Warning: \headheight is too small (12.0pt): 
+(fancyhdr)                Make it at least 14.49998pt, for example:
+(fancyhdr)                \setlength{\headheight}{14.49998pt}.
+(fancyhdr)                You might also make \topmargin smaller to compensate:
+(fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
+
+[2] (./main.toc)
 \tf@toc=\write5
 
 \openout5 = main.toc
- [2]
-<placeholder.jpg, id=19, 1027.84pt x 770.88pt>
+
+
+Package fancyhdr Warning: \headheight is too small (12.0pt): 
+(fancyhdr)                Make it at least 14.49998pt, for example:
+(fancyhdr)                \setlength{\headheight}{14.49998pt}.
+(fancyhdr)                You might also make \topmargin smaller to compensate:
+(fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
+
+[3]
+<placeholder.jpg, id=24, 1027.84pt x 770.88pt>
 File: placeholder.jpg Graphic file (type jpg)
 <use placeholder.jpg>
-Package luatex.def Info: placeholder.jpg  used on input line 164.
-(luatex.def)             Requested size: 256.07481pt x 192.04906pt.
+Package luatex.def Info: placeholder.jpg  used on input line 201.
+(luatex.def)             Requested size: 227.62206pt x 170.71158pt.
 File: placeholder.jpg Graphic file (type jpg)
 <use placeholder.jpg>
-Package luatex.def Info: placeholder.jpg  used on input line 171.
-(luatex.def)             Requested size: 256.07481pt x 192.04906pt.
-File: placeholder.jpg Graphic file (type jpg)
-<use placeholder.jpg>
-Package luatex.def Info: placeholder.jpg  used on input line 178.
-(luatex.def)             Requested size: 256.07481pt x 192.04906pt.
+Package luatex.def Info: placeholder.jpg  used on input line 208.
+(luatex.def)             Requested size: 227.62206pt x 170.71158pt.
 
 
 LaTeX Warning: `h' float specifier changed to `ht'.
 
-[3<./placeholder.jpg>]
+File: placeholder.jpg Graphic file (type jpg)
+<use placeholder.jpg>
+Package luatex.def Info: placeholder.jpg  used on input line 215.
+(luatex.def)             Requested size: 227.62206pt x 170.71158pt.
+
+LaTeX Warning: `h' float specifier changed to `ht'.
+
 
 Package fancyhdr Warning: \headheight is too small (12.0pt): 
-(fancyhdr)                Make it at least 12.45003pt, for example:
-(fancyhdr)                \setlength{\headheight}{12.45003pt}.
+(fancyhdr)                Make it at least 14.49998pt, for example:
+(fancyhdr)                \setlength{\headheight}{14.49998pt}.
 (fancyhdr)                You might also make \topmargin smaller to compensate:
-(fancyhdr)                \addtolength{\topmargin}{-0.45003pt}.
+(fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
 
-[4] (./main.aux)
+[4<./placeholder.jpg>]
+
+Package fancyhdr Warning: \headheight is too small (12.0pt): 
+(fancyhdr)                Make it at least 14.49998pt, for example:
+(fancyhdr)                \setlength{\headheight}{14.49998pt}.
+(fancyhdr)                You might also make \topmargin smaller to compensate:
+(fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
+
+[5] (./main.aux)
  ***********
 LaTeX2e <2023-11-01> patch level 1
 L3 programming layer <2024-01-22>
  ***********
-
-
-LaTeX Font Warning: Size substitutions with differences
-(Font)              up to 0.5pt have occurred.
 
 
 LaTeX Warning: There were multiply-defined labels.
@@ -700,19 +717,19 @@ LaTeX Warning: There were multiply-defined labels.
 )
 
 Here is how much of LuaTeX's memory you used:
- 17479 strings out of 476553
+ 17495 strings out of 476553
  100000,1977958 words of node,token memory allocated
  511 words of node memory still in use:
    6 hlist, 2 vlist, 2 rule, 2 glue, 4 kern, 1 glyph, 10 attribute, 53 glue_spec, 10 attribute_list, 3 write nodes
-   avail lists: 1:1,2:481,3:260,4:32,5:240,6:41,7:1906,8:12,9:252,10:8,11:142
- 39008 multiletter control sequences out of 65536+600000
- 115 fonts using 8359319 bytes
- 99i,12n,97p,460b,711s stack positions out of 10000i,1000n,20000p,200000b,200000s
+   avail lists: 1:1,2:543,3:287,4:32,5:638,6:48,7:4992,8:12,9:250,10:10,11:410
+ 39020 multiletter control sequences out of 65536+600000
+ 112 fonts using 8172951 bytes
+ 99i,12n,97p,969b,711s stack positions out of 10000i,1000n,20000p,200000b,200000s
 {/usr/share/texlive/texmf-dist/fonts/enc/dvips/stix/stix-t1.enc}</usr/share/texlive/texmf-dist/fonts/type1/public/stix/STIXGeneral-Bold.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/stix/STIXGeneral-Regular.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/stix/stix-mathex.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/stix/stix-mathit.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/stix/stix-mathrm.pfb>
-Output written on main.pdf (5 pages, 121229 bytes).
+Output written on main.pdf (6 pages, 421322 bytes).
 
-PDF statistics: 45 PDF objects out of 1000 (max. 8388607)
- 31 compressed objects within 1 object stream
+PDF statistics: 52 PDF objects out of 1000 (max. 8388607)
+ 33 compressed objects within 1 object stream
  0 named destinations out of 1000 (max. 131072)
  16 words of extra memory for PDF output out of 10000 (max. 100000000)
 

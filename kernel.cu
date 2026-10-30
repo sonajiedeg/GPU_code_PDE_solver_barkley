@@ -58,7 +58,9 @@ int main(int argc, char* argv[])
 	double R0 = stod(argv[3]);
 	int SegmentSize = stod(argv[4]);
 	int DID = stoi(argv[5]);
-	printf("-------------->%f\t,%f\t,%lf\n",df,Pa,R0);
+	int antiNode = stoi(argv[6]);
+
+	printf("-------------->%f\t,%f\t,%lf,%d,%d\n",df,Pa,R0,DID,antiNode);
     const unsigned int res = 256; // swich
     const unsigned int size = res * res;
     float* u = new float[size];
@@ -69,7 +71,7 @@ int main(int argc, char* argv[])
 
     // Add vectors in parallel.
 	cudaError_t cudaStatus;
-	SimParamStruct params = paramSetup(df,Pa,SegmentSize);
+	SimParamStruct params = paramSetup(df,Pa,SegmentSize,antiNode);
 	if(params.segment){ cudaStatus = solve2(u, v, u_sol, size, res, params, R0, DID); CUERR; }
     // if(params.segment){ cudaStatus = iterate_prep_segment(u, v, u_sol, size, res, params); CUERR; }
 	else{ cudaStatus = iterate_prep(u, v, u_sol, size, res, params); CUERR; }

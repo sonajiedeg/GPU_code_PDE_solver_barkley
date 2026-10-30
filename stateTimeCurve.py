@@ -12,8 +12,8 @@ def read_and_plot(filenameX, filenameY, qty):
 
     # anti node pos (only based on the offset, not concidering the transient and bounary effects)
     if qty=="x":
-        ff = 75
-        f = 25e3
+        ff = 25
+        f = 44e3
         c = 1500.0
         lam = c/f
         dAx = 1623.7864077669904e-6
@@ -42,8 +42,8 @@ def read_and_plot(filenameX, filenameY, qty):
 
 
 # read_and_plot("t_44000.00_df_200.00_s_0.txt", "x_44000.00_df_200.00_s_0.txt")
-read_and_plot("t_25_df_75_Pa_75_R0_40sol.bin", "x_25_df_75_Pa_75_R0_40sol.bin", "x")
-read_and_plot("t_25_df_75_Pa_75_R0_40sol.bin", "R_25_df_75_Pa_75_R0_40sol.bin", "R")
+read_and_plot("t_44_df_25_Pa_75_R0_100sol.bin", "x_44_df_25_Pa_75_R0_100sol.bin", "x")
+read_and_plot("t_44_df_25_Pa_75_R0_100sol.bin", "R_44_df_25_Pa_75_R0_100sol.bin", "R")
 plt.show()
 
 

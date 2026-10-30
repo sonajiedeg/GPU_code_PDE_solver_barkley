@@ -2,11 +2,12 @@
 #include "param.h"
 #include <cstdio>
 
-SimParamStruct paramSetup(float df = 50.0f, float Pa = 75000.0f, int SegmentSize = 8192){
+SimParamStruct paramSetup(float df = 50.0f, float Pa = 75000.0f, int SegmentSize = 8192, int antiNode = 1){
 	
 	// float res = 256;
 	// int res = 256;
 	SimParamStruct params;
+	params.antiNode = antiNode;
 	params.lInWavelenght = 1.0f/1.0f;
 	params.res = 256;
 	params.f = 44e3;

@@ -1,19 +1,19 @@
 % \documentclass[twocolumn]{article}
-\documentclass{article}
+\documentclass[12pt]{article}
 \usepackage{graphicx,amsmath,fancyhdr,fancyvrb,bm}
 \usepackage[upint]{stix}
-\title{Introduction to Quantum Information Theory Notes ($2^{nd}$ Semester)}
-\author{Prof./Lect.: Dr. Mihály Weiner \\ Me: G.J.J.}
-\date{2025/2026/1}
+\title{Buborék dinamika és 2D akusztikus mez\H o szimuláció egyirányú csatolással}
+\author{Gedei János Jonatán \\ Konzulens: Dr. Heged\H us Ferenc}
+\date{2026 november}
 \pagenumbering{arabic}     % Use Arabic numerals (1, 2, 3, ...)
 \setcounter{page}{0}       % Start from page number 0
 \thispagestyle{empty}      % Removes number on the current page (the first one)
 \usepackage[a4paper,
             bindingoffset=0in,
-            left=1.5cm,
-            right=1.5cm,
-            top=2cm,
-            bottom=1.5cm,
+            left=2.5cm,
+            right=2.5cm,
+            top=2.5cm,
+            bottom=2.5cm,
             footskip=.25in]{geometry}
 \pagestyle{fancy}
 \fancyhf{} % clear all header and footer fields
@@ -128,16 +128,42 @@
 \begin{document}
 
 \maketitle
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.6\linewidth]{bme_logo.png}
+\end{figure}
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.4\linewidth]{HDSlogo_szoveg.png}
+\end{figure}
+
 \thispagestyle{empty}
+
+\clearpage
+\thispagestyle{empty}
+\null
 \newpage
 
 \section*{Absztrakt}
 Ez a dolgozat  az akusztikus tér mozgó csomópontjainak hatását vizsgálja buborékok sugár és pozíció dinamikájára, numerikus módszerekkel.
-Ezek az állapotváltozók jelentős szerepet játtszanak a szonokémiai reaktorokban.
+Ezek az állapotváltozók jelent\H os szerepet játt-szanak a szonokémiai reaktorokban.
 Korábbi munkánkat folytatva, két dimenziós szimulációt fejlesztettünk, amely az akusztikus hullámegyenletet oldja meg, GPU architektúrára illesztve, véges differenci módszerrel.
-A szimulációkat először állóhullámok, majd a gerjesztés időfüggő fáziseltolásával a nyomástér csomópont pozícióinak a mozgását reprodukáltuk.
-Ezzel párhuzamosan a rendszer CPU-ján irányú csatolással a Keller-Miksis és az impulzus egyenlet a buborék sugár és pozíció dinamikájának a modellezésének céljából.
+A szimulációkat el\H oször állóhullámok, majd a gerjesztés id\H ofügg\H o fáziseltolásával a nyomástér csomópont pozícióinak a mozgását reprodukáltuk.
+Ezzel párhuza-mosan a rendszer CPU-ján egy irányú csatolással a Keller-Miksis és az impulzus egyenlet oldom meg, a buborék sugár és pozíció dinamikáját modellezve.
 Végül pedig egyéb kutatások mérési eredményeivel összehasonlítottuk a szimulációk megoldásait.
+
+\section*{Abstract}
+
+This paper aims to examine the effects of moving nodes and anti-nodes of an acoustic field on bubble dynamics with changing radius and position with the use of numerical methods. These properties are essential for sonochemical reactors. Continuing our work, we developed a two dimensional acoustic simulation, solving the wave equation, mapped to a specific GPU architecture using finite difference method, for rapid field simulations. We started with simulating standing waves, then with an introduction of a time dependent phase shift for one of the transducer we reproduced the movement of the loction of the nodes and anti-nodes of the filed. Running in parallel on the systems CPU, with one way coupling to the Keller-Miksis and the momentum equations was added in order to model bubble radius and translation dynamics. Finaly our results were compared to researches measurement result, that examined bubble translation oscillations.
+
+\section*{Köszönetnyilvánítás}
+
+Szeretném hálámat kifejezni Nagy Dánielnek aki az ALPACA megoldó eredményeit szolgáltatta és Dr. Klapcsik Kálmánnak, aki a buborék dinamikai egyenleteivel segített.
+Továbbá köszönettel tartozok konzulensemnek, Dr. Heged\H us Ferencnek, a dolgozat készítése során nyújtott szakmai támogatásáért.
+
+This study was supported by the NVIDIA Corporation via the Academic Hardware Grants Program.
+
+
 \newpage          
 
 \setcounter{tocdepth}{4}
@@ -146,8 +172,15 @@ Végül pedig egyéb kutatások mérési eredményeivel összehasonlítottuk a s
 
 \section{Bevezetés}
 \subsection{Szonokémia}
-\subsection{Miért kellett ezt a dolgozatot megirni}
+
+Miert is fontos a szonokemia?
+Kemiai reaktorok iparban alkalmazott gepek, amik kornyezetet biztositanak kemiai reakciok vegbemenetelenek.
+Egy gyakori pelda a Haber-Bosch folyamat, amely magas nyomason, es magas homersekleten 
+
+
+\subsection{Miért kellett ezt a dolgozatot megírni}
 \section{Modell}
+
 \subsection{Fizikai modell => Matematikai modell}
 Mi az a reaktor
 
@@ -156,6 +189,10 @@ Fizikai modell
 \subsection{Numerikus módszerek}
 fdm+rk45
 haradware aware diszkretizáció
+
+\subsection{Validáció}
+ND's sol from ALPACE compared to my sol form gpu
+
 \section{Akusztikus mez\H{o}}
 \section{Eredmények}
 
@@ -183,5 +220,9 @@ haradware aware diszkretizáció
 
 \section{compare to J's measurements?}
 \section{Összefoglaló}
+
+\section{Források}
+
+\section{MI(AI) használat}
 
 \end{document}

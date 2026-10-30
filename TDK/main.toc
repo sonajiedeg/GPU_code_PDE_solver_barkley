@@ -1,10 +1,13 @@
-\contentsline {section}{\numberline {1}Bevezetés}{3}{}%
-\contentsline {subsection}{\numberline {1.1}Szonokémia}{3}{}%
-\contentsline {subsection}{\numberline {1.2}Miért kellett ezt a dolgozatot megirni}{3}{}%
-\contentsline {section}{\numberline {2}Modell}{3}{}%
-\contentsline {subsection}{\numberline {2.1}Fizikai modell => Matematikai modell}{3}{}%
-\contentsline {subsection}{\numberline {2.2}Numerikus módszerek}{3}{}%
-\contentsline {section}{\numberline {3}Akusztikus mez\H {o}}{3}{}%
-\contentsline {section}{\numberline {4}Eredmények}{3}{}%
-\contentsline {section}{\numberline {5}compare to J's measurements?}{4}{}%
-\contentsline {section}{\numberline {6}Összefoglaló}{4}{}%
+\contentsline {section}{\numberline {1}Bevezetés}{4}{}%
+\contentsline {subsection}{\numberline {1.1}Szonokémia}{4}{}%
+\contentsline {subsection}{\numberline {1.2}Miért kellett ezt a dolgozatot megírni}{4}{}%
+\contentsline {section}{\numberline {2}Modell}{4}{}%
+\contentsline {subsection}{\numberline {2.1}Fizikai modell => Matematikai modell}{4}{}%
+\contentsline {subsection}{\numberline {2.2}Numerikus módszerek}{4}{}%
+\contentsline {subsection}{\numberline {2.3}Validáció}{4}{}%
+\contentsline {section}{\numberline {3}Akusztikus mez\H {o}}{4}{}%
+\contentsline {section}{\numberline {4}Eredmények}{4}{}%
+\contentsline {section}{\numberline {5}compare to J's measurements?}{5}{}%
+\contentsline {section}{\numberline {6}Összefoglaló}{5}{}%
+\contentsline {section}{\numberline {7}Források}{5}{}%
+\contentsline {section}{\numberline {8}MI(AI) használat}{5}{}%

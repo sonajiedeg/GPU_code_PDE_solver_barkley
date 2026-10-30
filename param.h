@@ -48,6 +48,7 @@ struct SimParamStruct{
 	int remainder;
     float PhaseOffsetAmplitude;
 	float PhaseOffsetAngularVelocity;
+	int antiNode;
 };
 
 

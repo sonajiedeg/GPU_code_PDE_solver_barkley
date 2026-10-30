@@ -47,12 +47,25 @@ def generate_heatmaps():
     # ==========================================
     # 1. SPECIFY YOUR PARAMETER ARRAYS HERE
     # ==========================================
+    saveDir = ".plots/"
+    '''
+    batchName = "5_25_125"
+    directory = ".data/5_25_125/"
     df_values = [5]  # frequency offset values in Hz (e.g., 75)
     R0_values = [10**((k)/10)*10**(-5) - 0e-5 for k in range(8)]
-    R0_values = [ r*1e6 for r in R0_values ]
     Pa_values = [66.0e3 - 8.0e3*k for k in range(8)]
-    Pa_values = [ p*1e-3 for p in Pa_values ]
+    '''
 
+    batchName = "25"
+    directory = ".data/25/"
+    df_values = [25]  # frequency offset values in Hz (e.g., 75)
+    R0_values = [10**((k)/10)*10**(-5) + 2e-5 for k in range(16)]
+    Pa_values = [10.0e3 + 8.0e3*15 - 8.0e3*k for k in range(16)]
+
+
+
+    R0_values = [ r*1e6 for r in R0_values ]
+    Pa_values = [ p*1e-3 for p in Pa_values ]
     # Fixed driving configuration
     f_driver = 44e3 # 25 kHz (match your simulation setting)
     A_val = f_driver / 1000.0
@@ -71,9 +84,9 @@ def generate_heatmaps():
         # Iterate through the grid: Rows = Pa, Cols = R0
         for r_idx, Pa in enumerate(Pa_values):
             for c_idx, R0 in enumerate(R0_values):
-                t_filename = f".data/5_25_125/t_{A_val:.0f}_df_{df:.0f}_Pa_{Pa:.0f}_R0_{R0:.0f}sol.bin"
-                print(t_filename)
-                x_filename = f".data/5_25_125/x_{A_val:.0f}_df_{df:.0f}_Pa_{Pa:.0f}_R0_{R0:.0f}sol.bin"
+                t_filename = directory + f"t_{A_val:.0f}_df_{df:.0f}_Pa_{Pa:.0f}_R0_{R0:.0f}sol.bin"
+                # print(t_filename)
+                x_filename = directory + f"x_{A_val:.0f}_df_{df:.0f}_Pa_{Pa:.0f}_R0_{R0:.0f}sol.bin"
 
                 if os.path.exists(t_filename) and os.path.exists(x_filename):
                     try:
@@ -122,7 +135,7 @@ def generate_heatmaps():
         ax.set_title(f"Amplitude Gain Heatmap (df = {df} Hz)", fontsize=12)
 
         plt.tight_layout()
-        gain_svg_name = f"gain_df_{df:.0f}.svg"
+        gain_svg_name = saveDir + f"gain_df_{df:.0f}_BN_{batchName}.svg"
         plt.savefig(gain_svg_name, format="svg", dpi=300)
         print(f"Saved vector graphic: {gain_svg_name}")
         plt.close(fig)
@@ -158,7 +171,7 @@ def generate_heatmaps():
         ax.set_title(f"Phase Offset Heatmap (df = {df} Hz, 0° = White)", fontsize=12)
 
         plt.tight_layout()
-        phase_svg_name = f"phase_df_{df:.0f}.svg"
+        phase_svg_name = saveDir + f"phase_df_{df:.0f}_BN_{batchName}.svg"
         plt.savefig(phase_svg_name, format="svg", dpi=300)
         print(f"Saved vector graphic: {phase_svg_name}")
         plt.close(fig)

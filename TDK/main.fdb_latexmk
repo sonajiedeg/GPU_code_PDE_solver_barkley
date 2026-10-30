@@ -1,6 +1,6 @@
 # Fdb version 4
-["lualatex"] 1792712358.63955 "main.tex" "main.pdf" "main" 1792712360.35195 0
-  "/home/usr1/.texlive2023/texmf-var/luatex-cache/generic/fonts/otl/lmroman10-regular.luc" 1791914315.43427 127309 677951b359b90ddbfa3eb54f696122f6 ""
+["lualatex"] 1793320581.6842 "main.tex" "main.pdf" "main" 1793320583.7583 0
+  "/home/usr1/.texlive2023/texmf-var/luatex-cache/generic/fonts/otl/lmroman12-regular.luc" 1791820203.23727 127652 a5bcc9609cb60f4b11aae93e79c7a0c6 ""
   "/home/usr1/.texlive2023/texmf-var/luatex-cache/generic/names/luaotfload-names.luc.gz" 1791820203.16639 405824 9d9314599f20ffc2dfa3d4c9a8d74edb ""
   "/usr/share/texlive/texmf-dist/fonts/tfm/public/amsfonts/cmextra/cmbsy6.tfm" 1246382020 1124 14ccf5552bc7f77ca02a8a402bea8bfb ""
   "/usr/share/texlive/texmf-dist/fonts/tfm/public/amsfonts/cmextra/cmbsy7.tfm" 1246382020 1120 7f9f170e8aa57527ad6c49feafd45d54 ""
@@ -107,7 +107,7 @@
   "/usr/share/texlive/texmf-dist/tex/latex/background/background.sty" 1394061490 5593 3c5a676b1c4a9faee4a2a4d4a1b33300 ""
   "/usr/share/texlive/texmf-dist/tex/latex/base/article.cls" 1705352648 20144 147463a6a579f4597269ef9565205cfe ""
   "/usr/share/texlive/texmf-dist/tex/latex/base/ltluatex.lua" 1705352648 24543 44e225ecc61706b060f0189a96e1cc1d ""
-  "/usr/share/texlive/texmf-dist/tex/latex/base/size10.clo" 1705352648 8448 dbc0dbf4156c0bb9ba01a1c685d3bad0 ""
+  "/usr/share/texlive/texmf-dist/tex/latex/base/size12.clo" 1705352648 8449 f07039d8e4e89f21078d9b5137579bfc ""
   "/usr/share/texlive/texmf-dist/tex/latex/base/textcomp.sty" 1705352648 2894 fc64867f9d198785eabe71a88276a9cb ""
   "/usr/share/texlive/texmf-dist/tex/latex/base/ts1cmr.fd" 1705352648 2430 fce77d7e103eb98b6c4d486ae1d466c0 ""
   "/usr/share/texlive/texmf-dist/tex/latex/epstopdf-pkg/epstopdf-base.sty" 1579991033 13886 d1306dcf79a944f6988e688c1785f9ce ""
@@ -196,9 +196,11 @@
   "/usr/share/texlive/texmf-dist/tex/luatex/luaotfload/luaotfload.lua" 1693603203 13565 c514d92e6ff6be7b2f35d8e0eb56185c ""
   "/var/lib/texmf/fonts/map/pdftex/updmap/pdftex.map" 1776070062.98935 5472669 54eaf61a88b6b7896ebd0dac973cb29c ""
   "/var/lib/texmf/web2c/luahbtex/lualatex.fmt" 1776070082 12236362 7c23d9496f1161aba75cc1c60b4379c0 ""
-  "main.aux" 1792712359.58511 1931 7afdfb22990a4da250dc6a1a7377dd56 "lualatex"
-  "main.tex" 1792712357.22365 6550 ed24ac9d89a77360a530d896e0c4c561 ""
-  "main.toc" 1792712359.59014 685 2db1dd7743c10b66656d40c6bf8c1d97 "lualatex"
+  "HDSlogo_szoveg.png" 1793320460.56082 268467 97996dc63ed870f053d3fbed93487342 ""
+  "bme_logo.png" 1793320123.63627 42510 a484eb8954b93d69ddcdffd95b20217d ""
+  "main.aux" 1793320583.61333 2281 ee3b180009549c8a4fbc00c1050e15be "lualatex"
+  "main.tex" 1793320579.71913 8652 886c9ae039a69f3158243414267d878b ""
+  "main.toc" 1793320583.617 869 635c08551d33e2ab1ae2f3965ce5ecf6 "lualatex"
   "placeholder.jpg" 1730988141.78971 22550 7493e5654057ed64161c7579703d56b4 ""
   (generated)
   "main.aux"

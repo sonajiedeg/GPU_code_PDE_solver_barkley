@@ -4,13 +4,27 @@ import numpy as np
 
 
 def generate_parameter_sweep_plots():
+    saveDir = ".plots/"
     # ==========================================
     # 1. SPECIFY YOUR PARAMETER ARRAYS HERE
     # ==========================================
-    df_values = [5]  # frequency offset values in Hz (e.g., 75)
+    # R0_values = [10**((k)/10)*10**(-5) - 0e-5 for k in range(8)]
+    # Pa_values = [66.0e3 - 8.0e3*k for k in range(8)]
+    '''
+    batchName = "5_25_125"
+    directory = ".data/5_25_125/"
+    df_values = [25]  # frequency offset values in Hz (e.g., 75)
     R0_values = [10**((k)/10)*10**(-5) - 0e-5 for k in range(8)]
-    R0_values = [ r*1e6 for r in R0_values ]
     Pa_values = [66.0e3 - 8.0e3*k for k in range(8)]
+    '''
+
+    batchName = "25"
+    directory = ".data/25/"
+    df_values = [25]  # frequency offset values in Hz (e.g., 75)
+    R0_values = [10**((k)/10)*10**(-5) + 2e-5 for k in range(16)]
+    Pa_values = [10.0e3 + 8.0e3 * 15 - 8.0e3 * k for k in range(16)]
+
+    R0_values = [ r*1e6 for r in R0_values ]
     Pa_values = [ p*1e-3 for p in Pa_values ]
 
     # Fixed driving parameters based on your C++ setup
@@ -18,7 +32,7 @@ def generate_parameter_sweep_plots():
     c = 1500.0
     lam = c / f_driver
     dAx = 1623.7864077669904e-6
-    Af = 2.0 * np.pi * dAx / lam
+    Af = dAx / lam
 
     # Maximum points to plot per curve to prevent OOM/RAM exhaustion in WSL
     MAX_PLOT_POINTS = 2000
@@ -58,9 +72,9 @@ def generate_parameter_sweep_plots():
 
                     # Pointing to the .data/ folder as confirmed
                     A_val = f_driver / 1000.0
-                    t_filename = f".data/5_25_125/t_{A_val:.0f}_df_{df:.0f}_Pa_{Pa:.0f}_R0_{R0:.0f}sol.bin"
+                    t_filename = directory + f"t_{A_val:.0f}_df_{df:.0f}_Pa_{Pa:.0f}_R0_{R0:.0f}sol.bin"
                     print(t_filename)
-                    data_filename = f".data/5_25_125/{qty}_{A_val:.0f}_df_{df:.0f}_Pa_{Pa:.0f}_R0_{R0:.0f}sol.bin"
+                    data_filename = directory + f"{qty}_{A_val:.0f}_df_{df:.0f}_Pa_{Pa:.0f}_R0_{R0:.0f}sol.bin"
 
                     # Check if both time and data files exist
                     if os.path.exists(t_filename) and os.path.exists(
@@ -163,7 +177,7 @@ def generate_parameter_sweep_plots():
             plt.tight_layout(rect=[0, 0.03, 1, 0.95])
 
             # Save as vector graphic (.svg)
-            output_svg_name = f"{qty}_{f_driver/1000.0:.0f}_df_{df:.0f}.svg"
+            output_svg_name = saveDir + f"{qty}_{f_driver/1000.0:.0f}_df_{df:.0f}_BN_{batchName}.svg"
             plt.savefig(output_svg_name, format="svg", dpi=300)
             print(f"Successfully saved vector graphic: {output_svg_name}")
             

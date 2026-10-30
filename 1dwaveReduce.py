@@ -15,7 +15,7 @@ it = 50000 # iteration step number
 res = 256 # number of pixels
 size = res**2
 dx = (c/f) * 1 / 256 # spatial discretization length
-sigma = .5 # Courant number
+sigma = .8 # Courant number
 dt = sigma * dx / c # time discretization, with CFL criterion
 Z = 1 # impedance BC parameter
 '''
@@ -37,12 +37,14 @@ uc = np.zeros([res + 2])
 va = np.zeros([res])
 vb = np.zeros([res])
 
-x = np.arange(res + 2) * dx
+lam = c/f
+x = np.arange(res + 2) * dx / lam
 
 # create figure
 fig, ax = plt.subplots(figsize=(9,6))
 line, = ax.plot(x, ua)
 
+plt.grid()
 ax.set_xlabel("x")
 ax.set_ylabel("u")
 ax.set_ylim(-80e3, 80e3)   # adjust if needed
@@ -65,6 +67,14 @@ bcC1 = 1 / ( 1.0 + dt * c / dx );
 bcC2 = Pa * dt * bcC1 * omega;
 bcC3 = dt * c / dx * bcC1;
 
+df = 100 
+f = 44e3
+c = 1500.0
+lam = c/f
+dAx = 1623.7864077669904e-6
+PhaseOffsetAmplitude = 2.0 * np.pi * dAx / lam;
+PhaseOffsetAngularVelocity = 2.0 * np.pi * df;
+antinode = 0
 
 results = []
 
@@ -76,8 +86,14 @@ for k in range( 1, int(it), 2 ):
         ub[i+1] = 2 * ua[i+1] - uc[i+1] + dt**2 * c**2 / dx**2 * ( ua[i+2] - 2 * ua[i+1] + ua[i] )
     # bc 
     # transducer
-    ub[res+1] = bcC1 * ua[res+1] + bcC3 * ub[res] + bcC2 * np.cos( (omega+2*np.pi*200) * dt * (k) ); # east
-    ub[0] = bcC1 * ua[0] + bcC3 * ub[1] + bcC2 * np.cos( omega * dt * (k) ); # east
+    phase_offset = PhaseOffsetAmplitude*np.sin(PhaseOffsetAngularVelocity*dt*k);
+    if antinode:
+        ub[res+1] = bcC1 * ua[res+1] + bcC3 * ub[res] + bcC2 * np.cos( (omega) * dt * (k) + phase_offset ); # east
+        ub[0] = bcC1 * ua[0] + bcC3 * ub[1] + bcC2 * np.cos( omega * dt * (k) ); # east
+    else:
+        ub[res+1] = bcC1 * ua[res+1] + bcC3 * ub[res] + bcC2 * np.sin( (omega) * dt * (k) + phase_offset ); # east
+        ub[0] = bcC1 * ua[0] + bcC3 * ub[1] - bcC2 * np.sin( omega * dt * (k) ); # east
+        # ub[0] = ub[1]
     # ub[0] = 1/(1+c*dt/dx)* ( ua[0] + omega*Pa*dt*np.cos(omega*dt*k) + c*dt/dx*ub[1])
     # ub[res+1] = 1/(1+c*dt/dx)* ( ua[res+1] + omega*Pa*dt*np.cos(omega*dt*k) + c*dt/dx*ub[res])
 
@@ -88,8 +104,15 @@ for k in range( 1, int(it), 2 ):
         ua[i+1] = 2 * ub[i+1] - uc[i+1] + dt**2 * c**2 / dx**2 * ( ub[i+2] - 2 * ub[i+1] + ub[i] )
     # bc 
     # transducer
-    ua[res+1] = bcC1 * ub[res+1] + bcC3 * ua[res] + bcC2 * np.cos( (omega+2*np.pi*200)* dt * (k+1) ); # east
-    ua[0] = bcC1 * ub[0] + bcC3 * ua[1] + bcC2 * np.cos( omega * dt * (k+1) ); # east
+    phase_offset = PhaseOffsetAmplitude*np.sin(PhaseOffsetAngularVelocity*dt*(k+1));
+    if antinode:
+        ua[res+1] = bcC1 * ub[res+1] + bcC3 * ua[res] + bcC2 * np.cos( (omega)* dt * (k+1) + phase_offset ); # east
+        ua[0] = bcC1 * ub[0] + bcC3 * ua[1] + bcC2 * np.cos( omega * dt * (k+1) ); # east
+    else:
+        ua[res+1] = bcC1 * ub[res+1] + bcC3 * ua[res] + bcC2 * np.sin( (omega)* dt * (k+1) + phase_offset ); # east
+        ua[0] = bcC1 * ub[0] + bcC3 * ua[1] - bcC2 * np.sin( omega * dt * (k+1) ); # east
+        # ua[0] = ua[1]
+
     # ua[0] = 1/(1+c*dt/dx)* ( ub[0] + omega*Pa*dt*np.cos(omega*dt*(k+1)) + c*dt/dx*ua[1])
     # ua[res+1] = 1/(1+c*dt/dx)* ( ub[res+1] + omega*Pa*dt*np.cos(omega*dt*(k+1)) + c*dt/dx*ua[res])
 
@@ -99,4 +122,4 @@ for k in range( 1, int(it), 2 ):
         line.set_ydata(ua)
         ax.set_title(f"k = {k}, max = {np.max(ua)}")
         plt.draw()
-        plt.pause(0.01)          # redraw
+        plt.pause(0.001)          # redraw

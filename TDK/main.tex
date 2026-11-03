@@ -1,6 +1,6 @@
 % \documentclass[twocolumn]{article}
 \documentclass[12pt]{article}
-\usepackage{graphicx,amsmath,fancyhdr,fancyvrb,bm}
+\usepackage{graphicx,amsmath,fancyhdr,fancyvrb,bm,placeins,subcaption,hyperref}
 \usepackage[upint]{stix}
 \title{Buborék dinamika és 2D akusztikus mez\H o szimuláció egyirányú csatolással}
 \author{Gedei János Jonatán \\ Konzulens: Dr. Heged\H us Ferenc}
@@ -170,59 +170,188 @@ This study was supported by the NVIDIA Corporation via the Academic Hardware Gra
 \tableofcontents
 \newpage          
 
+
 \section{Bevezetés}
 \subsection{Szonokémia}
-
-Miert is fontos a szonokemia?
-Kemiai reaktorok iparban alkalmazott gepek, amik kornyezetet biztositanak kemiai reakciok vegbemenetelenek.
-Egy gyakori pelda a Haber-Bosch folyamat, amely magas nyomason, es magas homersekleten 
-
-
-\subsection{Miért kellett ezt a dolgozatot megírni}
+Miért is fontos a szonokémia?
+A kémiai reaktorok az iparban alkalmazott gépek, amelyek környezetet biztosítanak a kémiai reakciók végbemeneteléhez.
+Egy gyakori példa a Haber–Bosch-folyamat, amely magas nyomáson és magas hőmérsékleten állít elő ammóniát.
+Ehhez kapcsolódik a buborékdinamika. Az akusztikusan gerjesztett buborékok összeroppanásukkor magas hőmérsékletet, illetve magas nyomást tudnak előállítani. Kémiai reaktorként tudnak működni.
+\subsection{A fejlesztés iránya}
+Ennek a dolgozatnak a célja egy gyors szimuláció létrehozása, amely a transzducerek, illetve a peremekről visszavert hanghullámok által létrehozott akusztikus mezőt modellezi. Ezt a mezőt majd egy buborék gerjesztésére alkalmazom, a buborék átmérőjének, illetve transzlációjának dinamikája modellezése érdekében. A cél egy mérés eredményeinek reprodukálása. Konzulensem kommunikált Dr. Juan Manuel Rosselló-val, aki egy adott frekvencián állóhullámot hozott létre, majd fázistolással mozgatta a buborékot. Mérésének eredménye egy fázisváltozás–frekvencia függő buborékoszcilláció-amplitúdó. A cél ennek a mérésnek a szimulálása. Már most megjegyezném, hogy a mérések eredményét csak jellegre sikerült reprodukálni.
 \section{Modell}
-
-\subsection{Fizikai modell => Matematikai modell}
-Mi az a reaktor
-
-Fizikai modell
-
+\subsection{Fizikai modell $\Rightarrow$ matematikai modell}
+A fizikai modell egy víztartály falakkal, amelyek részben elnyelik, részben visszaverik a hanghullámokat.
+2D-s akusztikus nyomástér, lineáris másodrendű hullámegyenlettel; ez a rendszer PDE-je.
+A falakon vagy impedancia-peremfeltétel volt alkalmazva (fal vagy maximális elnyelés), vagy akusztikus transzducer, ami inhomogén Neumann-peremfeltétellel volt modellezve.
+A buborékmodell a Keller–Miksis-egyenlet volt, amely ki lett egészítve a nyomástérből eredő buborék-transzlációs dinamikával \hyperlink{ref:kalm}{[1]}.
+Ez egyirányúan csatolt szimuláció; egy buborék esetében ez még talán nem túl nagy egyszerűsítés, viszont több buborék modellezésére nem alkalmas ez a megközelítés.
 \subsection{Numerikus módszerek}
-fdm+rk45
-haradware aware diszkretizáció
-
+Az akusztikus teret a másodrendű hullámegyenlet modellezi, ami véges differenciálmódszerrel lett megoldva. A rendszer diszkretizációjakor figyelembe vettem a GPU-architektúrát. A Keller–Miksis- és a buborék mozgásegyenlete CPU-n implementált, változó lépésközű Runge–Kutta (4–5. rendű) módszerrel.
 \subsection{Validáció}
-ND's sol from ALPACE compared to my sol form gpu
+Nagy Dániel szolgáltatott validációs adatokat. Az ALPACA CFD szimulációs szoftverben, ami a hullámegyenletnél pontosabb modellel dolgozik, egy Gauss-eloszlású kezdeti nyomást megadva annak időbeli változása összehasonlítható az általam implementált megoldóval. A $\ref{fig:alpaca}$ képen két akusztikus mező közötti nyomáskülönbség látható adott pontokban az idő függvényében. A két eloszlás egész jól együtt halad, amíg visszaverődés nem történik a falakról.
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.7\linewidth]{valid.png}
+    \caption{összehasonlítás, akusztikus mez\H o k\" ulönbség adott pontokban}
+    \label{fig:alpaca}
+\end{figure}
+
 
 \section{Akusztikus mez\H{o}}
+
+Két egymással szembeforditott transzducerrek állohullámot alakítottam ki. 
+
+\begin{figure}[htbp]
+    \centering
+    % row 1
+    \begin{subcaptionbox}{}
+        {\includegraphics[width=0.22\textwidth]{z01.png}}
+    \end{subcaptionbox}
+    \hfill
+    \begin{subcaptionbox}{}
+        {\includegraphics[width=0.22\textwidth]{z02.png}}
+    \end{subcaptionbox}
+    \hfill
+    \begin{subcaptionbox}{}
+        {\includegraphics[width=0.22\textwidth]{z03.png}}
+    \end{subcaptionbox}
+    \hfill
+    \begin{subcaptionbox}{}
+        {\includegraphics[width=0.22\textwidth]{z04.png}}
+    \end{subcaptionbox}
+
+    \vspace{0.8em}   % gap between rows
+
+    % row 2
+    \begin{subcaptionbox}{}
+        {\includegraphics[width=0.22\textwidth]{z05.png}}
+    \end{subcaptionbox}
+    \hfill
+    \begin{subcaptionbox}{}
+        {\includegraphics[width=0.22\textwidth]{z07.png}}
+    \end{subcaptionbox}
+    \hfill
+    \begin{subcaptionbox}{}
+        {\includegraphics[width=0.22\textwidth]{z06.png}}
+    \end{subcaptionbox}
+    \hfill
+    \begin{subcaptionbox}{}
+        {\includegraphics[width=0.22\textwidth]{z08.png}}
+    \end{subcaptionbox}
+
+    \caption{álló hullám, Z = 0}
+    \label{fig:res}
+\end{figure}
+
+
+\section{Lineáris elmélet}
+A lineáris elmélet szerint alacsony nyomás amplitudójú gerjesztés esetén kiszámíthatóan viselkednek a buborékok. Alacsony nyomáson, a buborékok sugarának f\" uggvényében kiszámítható egy rezonancia frekvencia \hyperlink{ref:kalm}{[1]}. Ha a buboréksugár ez a frekvenciához tartozó rezonancia sugár alatt van, akkor az álló nyomáshullám anti-csomópontjában van az egyensúlyi helyzete. Illetve, ha a sugár a rezonancia sugár felett van, akkor pedig az állóhullám csomópontjába van az equillibrium pontja.
+
+A célom ezeknek az egyensúlyi helyzetek mozgatása, és a buborék mozgás vizsgálata, hogy mennyire nagy eltéréssel követi a buborék a mozgatott pontot.
+
+
 \section{Eredmények}
 
+A következ\H o ábrák egy szinuszosan mozgó egyensúlyi helyzetet tartalmaznak. Az ábrák 16x16 szimuláció adatain tartalmazzák, k\" ulönböz\H o paraméterekkel. A szimulációk 2 node/anti-node oszcillációs periódust tartalmaznak. Ennek a pontnak a mozgásához van hasonlítva a buborék pozíció. Az amplitudó hányados megadja, hogy mekkora a buborék oszcillációl amplitudó aránya a mozgatott ponthoz képes. Illetve látható még a fázis késés, illetve a DC offset. Az utóbbi jól tudja azonosítani, ha a buborék nem követi a lineáris elmélet szerinti equilibrium pontot.
+
+
 \begin{figure}[h]
     \centering
-    \includegraphics[width=0.5\linewidth]{placeholder.jpg}
-    \caption{Oszilláció amplitudó, $|A_x|(\Delta f)$}
+    \includegraphics[width=0.5\linewidth]{../.plots/gain_df_25_BN_25}
+	\caption{Amplitudó hányados}
     \label{fig:1}
 \end{figure}
 
 \begin{figure}[h]
     \centering
-    \includegraphics[width=0.5\linewidth]{placeholder.jpg}
-	\caption{TF heatmap gain, $\at{G_x}{\Delta f}(R_0,P_a)$}
+    \includegraphics[width=0.5\linewidth]{../.plots/phase_df_25_BN_25}
+	\caption{fázis késés}
     \label{fig:1}
 \end{figure}
 
 \begin{figure}[h]
     \centering
-    \includegraphics[width=0.5\linewidth]{placeholder.jpg}
-	\caption{TF heatmap phase offset, $\at{\varphi_x}{\Delta f}(R_0,P_a)$}
+    \includegraphics[width=0.5\linewidth]{../.plots/dc_offset_df_25_BN_25}
+	\caption{DC offset}
     \label{fig:1}
 \end{figure}
 
 
-\section{compare to J's measurements?}
+
+\FloatBarrier
+
+
+\section{Mérési eredményekhez hasonlítás}
+
+Az el\H oz\H o bekezdéshez hasonlóan kivontam az amplitudó hányadosokat, több paraméterhalmaz esetében. Ezek jellegre megegyezneg a mérési eredménnyel. Ki kell emelnem, hogy egy teljesebb összehasonlításhoz több szimulációt kell futtatni, és paraméter identifikációval meg kéne keresni egy optimális paraméter halmazt.
+
+
+\begin{figure}[h!]
+    \centering
+    \begin{subcaptionbox}{}
+        {\includegraphics[width=0.45\textwidth]{../.plots/Gain_vs_df_R0_50_Pa_42_FS.png}}
+    \end{subcaptionbox}
+    \hfill
+    \begin{subcaptionbox}{}
+        {\includegraphics[width=0.45\textwidth]{../.plots/Gain_vs_df_R0_70_Pa_10_FS4.png}}
+    \end{subcaptionbox}
+    \hfill
+
+    \begin{subcaptionbox}{}
+        {\includegraphics[width=0.45\textwidth]{../.plots/Gain_vs_df_R0_59_Pa_34_FS4.png}}
+    \end{subcaptionbox}
+    \hfill
+    \begin{subcaptionbox}{}
+        {\includegraphics[width=0.45\textwidth]{../.plots/Gain_vs_df_R0_83_Pa_34_FS4.png}}
+    \end{subcaptionbox}
+    \hfill
+    \begin{subcaptionbox}{}
+        {\includegraphics[width=0.45\textwidth]{../.plots/Gain_vs_df_R0_99_Pa_42_FS4.png}}
+    \end{subcaptionbox}
+    \hfill
+	\begin{subcaptionbox}{Dr. Juan Manuel Rosselló mérési eredményei}
+        {\includegraphics[width=0.45\textwidth]{../.plots/px.png}}
+    \end{subcaptionbox}
+    \caption{szimuláció és mérés}
+    \label{fig:res}
+\end{figure}
+
+\FloatBarrier
+
 \section{Összefoglaló}
+
+Egy irányba csatolt 2D akusztikus szimulációt futtattam, buborék sugár és mozgás dinamikát modellezve. Az eredmények jelleghelyesen reprodukálták a mérési eredményeket. Ezt paraméter identifikációval ki lehetne még egészíteni.
 
 \section{Források}
 
+\hypertarget{ref:kalm}{[1]} Kálmán Klapcsik, Ferenc Hegedűs. (2023) Numerical investigation of the translational motion of bubbles: The comparison of capabilities of the time-resolved and the time-averaged methods. (Volume 92). Ultrasonics Sonochemistry.
+
+
+
+
 \section{MI(AI) használat}
+
+Adat vizualizációs kódok készítése, illetve kód hibák feltárására volt mesterséges intelligencia alkalmazva.
+
+\section{Appendix}
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.9\linewidth]{x_44_df_25_BN_25.png}
+    \caption{Oszilláció amplitudó, $|A_x|$}
+    \label{fig:1}
+\end{figure}
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.9\linewidth]{../.plots/R_44_df_25_BN_25.png}
+    \caption{Sugár oszillációk, $R$}
+    \label{fig:1}
+\end{figure}
+
+\section{Kód}
+
+\url{https://github.com/sonajiedeg/GPU_code_PDE_solver_barkley}
+
 
 \end{document}

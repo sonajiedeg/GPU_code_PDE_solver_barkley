@@ -1,13 +1,16 @@
-\contentsline {section}{\numberline {1}Bevezetés}{4}{}%
-\contentsline {subsection}{\numberline {1.1}Szonokémia}{4}{}%
-\contentsline {subsection}{\numberline {1.2}Miért kellett ezt a dolgozatot megírni}{4}{}%
-\contentsline {section}{\numberline {2}Modell}{4}{}%
-\contentsline {subsection}{\numberline {2.1}Fizikai modell => Matematikai modell}{4}{}%
-\contentsline {subsection}{\numberline {2.2}Numerikus módszerek}{4}{}%
-\contentsline {subsection}{\numberline {2.3}Validáció}{4}{}%
-\contentsline {section}{\numberline {3}Akusztikus mez\H {o}}{4}{}%
-\contentsline {section}{\numberline {4}Eredmények}{4}{}%
-\contentsline {section}{\numberline {5}compare to J's measurements?}{5}{}%
-\contentsline {section}{\numberline {6}Összefoglaló}{5}{}%
-\contentsline {section}{\numberline {7}Források}{5}{}%
-\contentsline {section}{\numberline {8}MI(AI) használat}{5}{}%
+\contentsline {section}{\numberline {1}Bevezetés}{4}{section.1}%
+\contentsline {subsection}{\numberline {1.1}Szonokémia}{4}{subsection.1.1}%
+\contentsline {subsection}{\numberline {1.2}A fejlesztés iránya}{4}{subsection.1.2}%
+\contentsline {section}{\numberline {2}Modell}{4}{section.2}%
+\contentsline {subsection}{\numberline {2.1}Fizikai modell $\Rightarrow $ matematikai modell}{4}{subsection.2.1}%
+\contentsline {subsection}{\numberline {2.2}Numerikus módszerek}{4}{subsection.2.2}%
+\contentsline {subsection}{\numberline {2.3}Validáció}{4}{subsection.2.3}%
+\contentsline {section}{\numberline {3}Akusztikus mez\H {o}}{5}{section.3}%
+\contentsline {section}{\numberline {4}Lineáris elmélet}{5}{section.4}%
+\contentsline {section}{\numberline {5}Eredmények}{6}{section.5}%
+\contentsline {section}{\numberline {6}Mérési eredményekhez hasonlítás}{7}{section.6}%
+\contentsline {section}{\numberline {7}Összefoglaló}{8}{section.7}%
+\contentsline {section}{\numberline {8}Források}{9}{section.8}%
+\contentsline {section}{\numberline {9}MI(AI) használat}{9}{section.9}%
+\contentsline {section}{\numberline {10}Appendix}{9}{section.10}%
+\contentsline {section}{\numberline {11}Kód}{10}{section.11}%

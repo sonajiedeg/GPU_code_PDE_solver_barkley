@@ -88,7 +88,7 @@ print("Extraction and rotation complete!")
 # ========== READ GPU SIMULATION DATA ============================================
 # ================================================================================
 res = 256
-fname = "u_snap.bin"
+fname = "uf44000df1s0.bin"
 p0 = 101325 # Pa
 
 # Read the binary file into a NumPy array[cite: 2]

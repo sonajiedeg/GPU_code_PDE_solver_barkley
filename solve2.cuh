@@ -214,18 +214,16 @@ cudaError_t solve2(float* u, float* v, float* u_sol, unsigned int size, int res,
 			cudaDeviceSynchronize(); CUERR;
 			
 			// save the pressure field
-			/*
 			char fname[100];
 			snprintf(fname, sizeof(fname), "uf%.0fdf%.0fs%d.bin",params.f, params.df,segment);
-			snap_to_text(uSnap, params, fname, activeSteps);
-			*/
+			snap_to_text(uSnap+SegmentOverlap*size, params, fname, activeSteps);
 		}
 
 
 		//-----------------------------------------------------------------------------------------------------------
 		//-------- RK45 SOLVER ON CPU -------------------------------------------------------------------------------
 		//-----------------------------------------------------------------------------------------------------------
-		if(run_bubble_solver)
+		if(false)
 		{
 			// where to start the time????
 			tSegmentEnd = ( segment * params.maxStepPerSegment + activeSteps - 1 ) * params.dt;

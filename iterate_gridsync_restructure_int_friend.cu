@@ -506,9 +506,10 @@ static __device__ __forceinline__ void copy_r_to_g_and_no_flux_int_friend(float*
     // ============================== S
 	// neumann
 	// if (j_eq_1) { g_u2[threadoffset_m_res] = r_u2 + params.bck * ( r_u2 - 2 * r_u1 + r_u0 ); }
-	// if (j_eq_1) { g_u2[threadoffset_m_res] = r_u2; }
+	if (j_eq_1) { g_u2[threadoffset_m_res] = r_u2; }
 	// sommerfeld/impedance
 	// if (j_eq_1) { float r_u_tmp = *r_u1_bc + dt*Z*c/dx * ( r_u1 - *r_u1_bc ); g_u2[threadoffset_m_res] = r_u_tmp; *r_u1_bc = r_u_tmp; } // temp 1st order impl. TODO: 2nd order
+	/*
 	if (j_eq_1) {
 		// float r_u_tmp = *r_u1_bc + params.dt * params.c / params.dx * ( r_u1 - *r_u1_bc ); // somewhat worked
 		float r_u_tmp = *r_u1_bc * params.som1 + params.som2 * ( r_u2 );
@@ -519,6 +520,7 @@ static __device__ __forceinline__ void copy_r_to_g_and_no_flux_int_friend(float*
 		//se
 		if (i_eq_res_m_2 && j_eq_1) { g_u2[threadoffset_m_res + 1] = r_u_tmp; }
 	}
+	*/
     // ============================== W
     // impedance/sommerfeld
 	// if (i_eq_1) { float r_u_tmp = *r_u1_bc + params.dt*params.Z*params.c/params.dx * ( r_u1 - *r_u1_bc ); g_u2[threadoffset_m_one] = r_u_tmp; *r_u1_bc = r_u_tmp; } // temp 1st order impl. TODO: 2nd order
@@ -557,8 +559,11 @@ static __device__ __forceinline__ void copy_r_to_g_and_no_flux_int_friend(float*
 	} // temp 1st order impl. TODO: 2nd order
 	*/
 	// Kalmi's transducer
+	/*
+	
     if (i_eq_1) {
-		if ( 64 <= j && j <= 191 ) {
+		// if ( 64 <= j && j <= 191 ) {
+		if (false) {
 			// float phase_offset = 3.14159265359 * 1 * (k / 10236.0 );
 			// float phase_offset = 0.0;
 			float r_u_tmp;
@@ -584,12 +589,14 @@ static __device__ __forceinline__ void copy_r_to_g_and_no_flux_int_friend(float*
 
 		}
 	}
+	*/
+	
 	// dirichlet
 	// if (i_eq_1) { g_u2[threadoffset_m_one] = 0; }
 	// neumann
     // if (i_eq_1) { g_u2[threadoffset_m_one] = r_u2 + 1/2/K * ( r_u2 - 2 * r_u1 + r_u0 ); }
 	// if (i_eq_1) { g_u2[threadoffset_m_one] = r_u2 + params.bck * ( r_u2 - 2 * r_u1 + r_u0 ); }
-	// if (i_eq_1) { g_u2[threadoffset_m_one] = r_u2; }
+	if (i_eq_1) { g_u2[threadoffset_m_one] = r_u2; }
 	
     // ============================== E
     //e transducer
@@ -603,8 +610,13 @@ static __device__ __forceinline__ void copy_r_to_g_and_no_flux_int_friend(float*
 	// sommerfeld
 	if (i_eq_res_m_2)
 	{
-		float r_u_tmp = *r_u1_bc * params.som1 + params.som2 * ( r_u2 );
+		float r_u_tmp = params.som1 * (*r_u1_bc) + params.som2 * ( r_u2 );
 		g_u2[threadoffset_p_one] = r_u_tmp;
+		//se
+		if (i_eq_res_m_2 && j_eq_1) { g_u2[threadoffset_m_res + 1] = r_u_tmp; }
+		//ne
+		if (i_eq_res_m_2 && j_eq_res_m_2) { g_u2[threadoffset_p_res + 1] = r_u_tmp; }
+
 		*r_u1_bc = r_u_tmp;
 	}
 #elif eBC == 3
@@ -683,19 +695,31 @@ static __device__ __forceinline__ void copy_r_to_g_and_no_flux_int_friend(float*
     // if (j_eq_res_m_2) { g_u2[threadoffset_p_res] = r_u2; }
 	// dirichlet
     // if (j_eq_res_m_2) { g_u2[threadoffset_p_res] = 0; }
+	if (j_eq_res_m_2) {
+		float bc = 0.0f;                       // or whatever ambient you want
+		float r_u_tmp = 2.0f * bc - r_u2;      // r_u2 is the interior value
+		g_u2[threadoffset_p_res] = r_u_tmp;
+		// \ldots corner treatment if needed
+	}
 	// if (j_eq_res_m_2) { float r_u_tmp = *r_u1_bc - dt*Z*c/dx * ( r_u1 - *r_u1_bc ); g_u2[threadoffset_p_res] = r_u_tmp; *r_u1_bc = r_u_tmp; } // temp 1st order impl. TODO: 2nd order
 	// sommerfeld
+	/*
 	if (j_eq_res_m_2) {
 		// float r_u_tmp = *r_u1_bc + params.dt * params.c / params.dx * ( r_u1 - *r_u1_bc ); // somewhat worked
-		float r_u_tmp = *r_u1_bc * params.som1 + params.som2 * ( r_u2 );
+
+		float som1 = 1.0f / ( 1.0f);
+		float som2 = 0.0f;
+
+
+		float r_u_tmp = *r_u1_bc * som1 + som2 * ( r_u2 );
 		g_u2[threadoffset_p_res] = r_u_tmp;
 		*r_u1_bc = r_u_tmp;
 		//nw
 		if (i_eq_1 && j_eq_res_m_2) { g_u2[threadoffset_p_res - 1] = r_u_tmp; }
 		//ne
 		if (i_eq_res_m_2 && j_eq_res_m_2) { g_u2[threadoffset_p_res + 1] = r_u_tmp; }
-
 	}
+	*/
 
 	/*
     //sw

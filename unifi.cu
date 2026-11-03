@@ -24,7 +24,8 @@ cudaError_t init(float* u1, float* u2, float** dev_2_u, float** dev_ua, float** 
     */
 
     // READ INPUTS
-    // text_to_array(u, v);
+    text_to_array(u1, u2);
+	printf("================================u10,u20, %f\t%f\n",u1[0],u2[0]);
 
     cudaError_t cudaStatus;
 

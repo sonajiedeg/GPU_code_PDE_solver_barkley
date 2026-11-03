@@ -1,0 +1,33 @@
+\section{Bevezetés}
+\subsection{Szonokémia}
+
+Miert is fontos a szonokemia?
+Kemiai reaktorok iparban alkalmazott gepek, amik kornyezetet biztositanak kemiai reakciok vegbemenetelenek.
+Egy gyakori pelda a Haber-Bosch folyamat, amely magas nyomason, es magas homersekleten allit elo ammoniat.
+Ehhez kapcsolódik a buborékdinamika. Az akusztikusan gerjesztett buborékok osszeroppanásukkor magas homersekletet, illetve magas nyomást tudnak el\H oállitani. Kémiai reaktorként tudnak mukodni. 
+
+
+\subsection{A fejlesztés iránya}
+Ennek a dolgozatnak a célja egy gyors szimulácio létrehozása, amely transzducerek, illetve a peremekrol visszvert hanghullámok álltal létrehozott akusztikus mezöt modellezi. Ezen mezot majd egy buborek gerjesztésére alkalmazom, buborék atmero illetve transzlácio dinamika modellezésének érdekében. A cél egy mérés eredményeinek a reprodukálása. Konzulensem kommunikált Dr. Juan Manuell Rosselló-val, aki egy adott frekvencian allohullamot hozott letre, majd fázistolással mozgatta a buborékot. Mérésenek eredménye egy fázis-változás-frekvencia fuggo buborékoszcillacio amplitudo. A cél ennek a mérésnek a szimulálása. Már most megjegyezném, hogy a mérések eredményét csak jellegre sikerult reprodukalni.
+
+\section{Modell}
+\subsection{Fizikai modell => Matematikai modell}
+
+A fizikai modell egy víz tartály, falakkal, amelyek részben elnyelik, részben visszaveri a hagngullámokat.
+
+2D-akusztikus nyomás tér, lineáris másodrend\H u hullámegyenlettel, ez a rendszer PDE-je. 
+
+A falakon vagy impedancia peremfeltétel volt alkalmazva (fal, vagy maximum elnyelés), vagy akusztikus transzducer, ami inhomogén Neumann peremfeltétellel volt modellezve.
+
+A Buborékmodell a Keller-Miksis egyenlet volt, amely ki lett egészítve a nyomátérbol eredo buborék transzlációs dinamikával \hyperlink{ref:kalm}{[1]}.
+
+Ez egy irányba csatolt szimuláció, egy buborék esetében ez még talán nem túl nagy egyszer\H usítés, viszont több buborék modellezésére nem alkalmas ez a megközelítés.
+
+\subsection{Numerikus módszerek}
+
+Az akusztikus teret a másodrend\H u hullámegyenlet modellezi, ami véges differenciál egyenlettel lett megoldva. A rendszer diszkretizációjakor figyelembe vettszem a GPU architechtúrát. A Keller-Miksis és a buborék mozgásegyenlete CPU-n implementált változó lépésközu Runge-Kutta (4-5 rendu).
+
+\subsection{Validáció}
+Nagy Dániel szolgáltatott validációs adatokat. Az ALPACA CFD szimulációs szoftverben, ami a hullámegyenlentnél pontosabb modellel dolgozik, egy Gauss eloszlású kezdeti nyomást megadva, annak az id\H obeli változása összehasonlítható az általam implementált megoldóval. A ($\ref{fig:alpaca}$) képen két akusztikus mez\H o közötti nyomásk\" ulönbség láthatá, adott pontokban, az id\H o f\" uggvényében. Az két eloszlás egész jól egy\" utt halad, amíg visszaver\H odés nem történik a falakról.
+
+

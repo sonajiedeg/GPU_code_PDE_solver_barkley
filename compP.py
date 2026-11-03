@@ -16,14 +16,15 @@ num_steps = len(file_list)
 
 # GPU configuration
 res = 256
-fname = "u_snap.bin"
+fname = "uf44000df1s0.bin"
 p0 = 101325 # Pa
+pa = 1e5
 
 # Plotting configuration
 LABEL = 12
 FONT = 18
 # List of (row, col) tuples you want to track over time
-POINTS_TO_PLOT = [(128, 128), (128, 138), (64, 128)] 
+POINTS_TO_PLOT = [(128, 128), (128, 138), (64, 128), (32,128), (32,32)] 
 
 # ================================================================================
 # 1. READ VALIDATION DATA (HDF5) WITH SPATIAL MAPPING
@@ -68,8 +69,7 @@ print("Loading GPU data...")
 data = np.fromfile(fname, dtype=np.float32)
 num_frames = data.size // (res * res)
 data = data.reshape((num_frames, res, res))
-data = data + p0 
-
+data = pa * data + p0
 # ================================================================================
 # 3. INTERPOLATE AND CALCULATE DIFFERENCE
 # ================================================================================
@@ -83,6 +83,11 @@ gpu_data_interp = interpolator(time_data)
 print("Calculating pressure differences...")
 # Calculate the final difference array (GPU - Validation)
 pressure_diff = gpu_data_interp - pressure_data
+# pressure_diff = gpu_data_interp
+# pressure_diff = pressure_data
+print("================")
+print(gpu_data_interp[3][128][128])
+print(pressure_data[3][128][128])
 
 # ================================================================================
 # 4. PLOT TIME HISTORY FOR SELECTED POINTS (POINT_STATIC)

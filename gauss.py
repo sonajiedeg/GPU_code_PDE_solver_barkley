@@ -10,7 +10,8 @@ L = 1e-3 # m
 # ic param.s
 sigx = L/7 # m
 sigy = L/5 # m
-pa = 1e5 # Pa
+pa = 1.0 # Pa
+# pa = 1e5 # Pa
 # p0 = 101325 # Pa
 p0 = 0 # Pa
 
@@ -26,7 +27,7 @@ for i, x in enumerate(xarr):
 
 # im = plt.imshow(p, cmap='cool')
 im = plt.imshow(p, cmap='coolwarm')
-cbar = plt.colorbar(im, boundaries=np.linspace(0,200000,5))
+cbar = plt.colorbar(im, boundaries=np.linspace(0,200000,100))
 plt.gca().invert_yaxis()
 plt.show()
 

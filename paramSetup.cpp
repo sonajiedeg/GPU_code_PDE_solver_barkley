@@ -11,9 +11,9 @@ SimParamStruct paramSetup(float df = 50.0f, float Pa = 75000.0f, int SegmentSize
 	params.lInWavelenght = 1.0f/1.0f;
 	params.res = 256;
 	params.f = 44e3;
-	// params.c = 1482.0f;   // c ~= 1500 m/s, then take its square
+	 params.c = 1482.0f;   // c ~= 1500 m/s, then take its square
 	// pmod
-	params.c = 1500.0f;
+	// params.c = 1500.0f;
 	float pi = 3.14159265359;
 
 	float lambda = params.c / params.f;
@@ -24,16 +24,21 @@ SimParamStruct paramSetup(float df = 50.0f, float Pa = 75000.0f, int SegmentSize
 	params.PhaseOffsetAngularVelocity = 2.0f * pi * df;
 	params.df = df;
 	params.c2 = params.c * params.c; 
-	params.dx = params.c / params.f * params.lInWavelenght / (1.0f * params.res); //  m divide
-	// params.dx = 1e-3 / 256; // for the validation case
+	// params.dx = params.c / params.f * params.lInWavelenght / (1.0f * params.res); //  m divide
+	params.dx = 1e-3 / 256; // for the validation case
 	// CFL criterion with Courant number C_CFL = smalld by 256
 	// params.dt = 5.859374999999999e-9 / 4;
-	params.sigma = 0.8; // CFL
+	params.sigma = 0.225; // CFL
+	// params.sigma = 0.8; // CFL
 						// rounding to, to, to, .... do something... idk, i want to sleep
+	/*
 	float dt_tmp = params.sigma * params.dx / params.c;
 	float k_tmp = 1 / params.f / dt_tmp;
 	int k = int(k_tmp); // i think this truncates, rounds to floor, good, cfl wont be violated
 	params.dt = 1 / params.f / (1.0f * k);
+	*/
+	params.dt = params.sigma * params.dx / params.c;
+
 
 	// for 9 point stencil
     params.K = ( params.dt * params.dt * params.c2 ) / ( 6 * params.dx * params.dx ); // ( dt * c^2 ) / ( 6 * dx^2 ) this comes from
@@ -46,13 +51,14 @@ SimParamStruct paramSetup(float df = 50.0f, float Pa = 75000.0f, int SegmentSize
 	params.bck = 1/2.0f/(params.dt*params.dt * params.c*params.c / params.dx / params.dx);
 	// params.rho = 998.2;
 	// pmod
-	params.rho = 998.0f;
+	// params.rho = 998.0f;
+	params.rho = 9.9820000000000005e+02; // for validation
 	params.d = 1e-6;
 	params.omega = 2 * 3.14159265359 * params.f;
 	params.dx_rho_d_omega2 = params.dx * params.rho * params.d * params.omega * params.omega;
 	params.omega_dt = params.omega * params.dt;
 	params.sin_coeff = params.c / params.f * params.lInWavelenght / (1.0f * params.res) * params.rho * params.d * params.omega * params.omega;
-	params.Z = 1.0f;
+	params.Z = 500.0f;
 	params.kappa = ( 1.0f - params.sigma ) / ( 1.0f + params.sigma );
 
     // ua[0] = ub[0] + dt * Z * c / dx * ( ub[1] - ub[0] )
@@ -85,8 +91,8 @@ SimParamStruct paramSetup(float df = 50.0f, float Pa = 75000.0f, int SegmentSize
 	*/
 	// float t = params.lInWavelenght / params.f * 12.0f*80.0f; // i want to set it so it just reaches the other wall
 	// float t = 0.004;
-	float t = 2/df / 1;
-	// t = 2.5e-6; // for the validation case
+	// float t = 2/df / 1;
+	float t = 2.5e-6; // for the validation case
 	// params.ITERATIONS = round( t / params.dt );
     params.ITERATIONS = round( t / params.dt / 2.0f ) * 2.0f;
     // params.ITERATIONS = 4;
